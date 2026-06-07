@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="irisGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f5e6c8"/>
+      <stop offset="100%" stop-color="#d4af37"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="104" height="104" rx="20" stroke="url(#goldGrad)" stroke-width="3" fill="#ffffff"/>
+  <rect x="18" y="18" width="84" height="84" rx="12" stroke="url(#irisGrad)" stroke-width="2" fill="none" opacity="0.6"/>
+  <path d="M60 32 C48 42 42 52 42 60 C42 68 48 78 60 88 C72 78 78 68 78 60 C78 52 72 42 60 32Z" fill="url(#irisGrad)" opacity="0.9"/>
+  <path d="M60 38 C54 44 50 52 50 60 C50 68 54 76 60 82 C66 76 70 68 70 60 C70 52 66 44 60 38Z" fill="#f0f0f8"/>
+  <circle cx="60" cy="60" r="6" fill="url(#goldGrad)"/>
+  <path d="M60 24 L62 34 L60 32 L58 34 Z" fill="url(#irisGrad)"/>
+  <path d="M36 60 L46 58 L44 60 L46 62 Z" fill="url(#irisGrad)" opacity="0.7"/>
+  <path d="M84 60 L74 62 L76 60 L74 58 Z" fill="url(#irisGrad)" opacity="0.7"/>
+</svg>

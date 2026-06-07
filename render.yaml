@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: iris-artframe-api
+    runtime: node
+    plan: free
+    buildCommand: cd backend && npm install && npm run build && npm run migrate && npm run seed:admin
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_AUTH_TOKEN
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: MAX_UPLOAD_SIZE_MB
+        value: 10
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Admin

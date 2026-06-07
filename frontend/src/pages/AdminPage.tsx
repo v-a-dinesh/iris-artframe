@@ -13,11 +13,16 @@ import axios from 'axios';
 export default function AdminPage() {
   const [mac, setMac] = useState('');
   const [name, setName] = useState('');
+  const [staticIp, setStaticIp] = useState('');
   const [devices, setDevices] = useState<Device[]>([]);
   const [result, setResult] = useState<ProvisionResult | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [listLoading, setListLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [dynamicIpInput, setDynamicIpInput] = useState('');
+  const [adminSaveError, setAdminSaveError] = useState('');
+  const [adminSaving, setAdminSaving] = useState(false);
 
   const loadDevices = () => {
     setListLoading(true);
@@ -37,10 +42,15 @@ export default function AdminPage() {
     setResult(null);
     setLoading(true);
     try {
-      const res = await adminApi.provision({ mac, name: name || undefined });
+      const res = await adminApi.provision({ 
+        mac, 
+        name: name || undefined,
+        static_ip: staticIp,
+      });
       setResult(res.data);
       setMac('');
       setName('');
+      setStaticIp('');
       loadDevices();
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Provisioning failed';
@@ -58,6 +68,28 @@ export default function AdminPage() {
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Failed to generate QR';
       setError(message || 'Failed to generate QR');
+    }
+  };
+
+  const startAdminEditDynamicIp = (device: Device) => {
+    setEditingId(device.id);
+    setDynamicIpInput(device.dynamic_ip || '');
+    setAdminSaveError('');
+  };
+
+  const handleAdminSaveDynamicIp = async (deviceId: string) => {
+    setAdminSaveError('');
+    setAdminSaving(true);
+    try {
+      await adminApi.updateDevice(deviceId, { dynamic_ip: dynamicIpInput.trim() });
+      setEditingId(null);
+      setDynamicIpInput('');
+      loadDevices();
+    } catch (err) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Failed to update IP';
+      setAdminSaveError(message || 'Failed to update IP');
+    } finally {
+      setAdminSaving(false);
     }
   };
 
@@ -82,7 +114,7 @@ export default function AdminPage() {
             </div>
             <div>
               <h2 className="font-display text-xl font-semibold text-heading">Provision new device</h2>
-              <p className="text-sm text-muted">Enter the frame MAC address</p>
+              <p className="text-sm text-muted">Enter MAC address and static IP to generate the QR label</p>
             </div>
           </div>
 
@@ -112,6 +144,19 @@ export default function AdminPage() {
             />
           </div>
 
+          <div>
+            <label className="label">Static IP</label>
+            <input
+              className="input-field font-mono"
+              value={staticIp}
+              onChange={(e) => setStaticIp(e.target.value)}
+              placeholder="192.168.1.100"
+              type="text"
+              required
+            />
+            <p className="mt-1 text-xs text-subtle">Unique IP assigned at provisioning — stored in QR and never changes</p>
+          </div>
+
           <button type="submit" className="btn-primary w-full" disabled={loading}>
             {loading ? 'Generating...' : 'Generate QR label'}
           </button>
@@ -129,6 +174,8 @@ export default function AdminPage() {
               <PrintLabel
                 deviceId={result.device?.device_id ?? ''}
                 deviceName={result.device?.name}
+                mac={result.device?.mac}
+                staticIp={result.device?.static_ip}
                 qrDataUrl={result.qr_data_url}
               />
             </div>
@@ -138,6 +185,8 @@ export default function AdminPage() {
                 <PrintLabel
                   deviceId={result.device?.device_id ?? ''}
                   deviceName={result.device?.name}
+                  mac={result.device?.mac}
+                  staticIp={result.device?.static_ip}
                   qrDataUrl={result.qr_data_url}
                 />
               </div>,
@@ -165,6 +214,7 @@ export default function AdminPage() {
                   <tr className="border-b border-ink-200 bg-ink-100/80 text-left text-xs uppercase tracking-wider text-muted dark:border-ink-700/50 dark:bg-ink-800/40">
                     <th className="px-4 py-4 font-semibold sm:px-6">Device ID</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Name</th>
+                    <th className="px-4 py-4 font-semibold sm:px-6">IP Addresses</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Status</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Owners</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Actions</th>
@@ -175,6 +225,53 @@ export default function AdminPage() {
                     <tr key={d.id} className="transition-colors hover:bg-ink-100/80 dark:hover:bg-ink-800/30">
                       <td className="px-4 py-4 font-mono text-iris-600 dark:text-iris-300 sm:px-6">{d.device_id}</td>
                       <td className="px-4 py-4 text-body sm:px-6">{d.name || '—'}</td>
+                      <td className="px-4 py-4 sm:px-6">
+                        {editingId === d.id ? (
+                          <div className="space-y-2">
+                            <input
+                              className="input-field font-mono text-xs"
+                              value={dynamicIpInput}
+                              onChange={(e) => setDynamicIpInput(e.target.value)}
+                              placeholder="192.168.1.105"
+                            />
+                            {adminSaveError && <p className="text-xs text-red-400">{adminSaveError}</p>}
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                className="text-xs font-medium text-iris-600"
+                                disabled={adminSaving || !dynamicIpInput.trim()}
+                                onClick={() => handleAdminSaveDynamicIp(d.id)}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                className="text-xs text-muted"
+                                onClick={() => setEditingId(null)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="text-xs text-muted">Static: {d.static_ip || '—'}</div>
+                            <div className="text-xs text-muted">Dynamic: {d.dynamic_ip || '—'}</div>
+                            {d.dynamic_ip_updated_at && (
+                              <div className="text-xs text-subtle">
+                                Updated {new Date(d.dynamic_ip_updated_at).toLocaleString()}
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => startAdminEditDynamicIp(d)}
+                              className="text-xs font-medium text-iris-600 hover:text-iris-500"
+                            >
+                              Edit dynamic IP
+                            </button>
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-4 sm:px-6">
                         <StatusBadge status={d.status} />
                       </td>

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "iris-artframe-api-v1",
     "name": "Iris Art Frame API",
-    "description": "Complete API collection for Iris Art Frame.\n\n## Import\n1. Postman → Import → select this file\n2. Set `baseUrl` if not using localhost (default: http://localhost:3001)\n3. Run **Auth → Admin Login** first (saves `adminToken`)\n4. Run **Admin → Provision Device** (saves `deviceApiKey`, `deviceUuid`, `deviceId` — save API key from response!)\n5. Run **Auth → User Register** or **User Login** (saves `userToken`)\n6. Run **Devices → Register Device to User** linking the provisioned frame\n7. For image upload, pick a local JPG/PNG in the **Upload Image** request\n\n## Default test credentials\n- Admin: admin@iris-artframe.vercel.app / Admin@Iris2026\n- Sample MAC: B8:27:EB:AA:BB:FF → device ID IRIS-B827EBAABBFF\n\n## Auth headers\n- User/Admin routes: `Authorization: Bearer {{userToken}}` or `{{adminToken}}`\n- Device poll routes: `x-api-key: {{deviceApiKey}}`",
+    "description": "Complete API collection for Iris Art Frame.\n\n## Import\n1. Postman → Import → select this file\n2. Set `baseUrl` (localhost: http://localhost:3001, production: https://iris-artframe.onrender.com)\n3. Run **Auth → Admin Login** first (saves `adminToken`)\n4. Run **Admin → Provision Device** with MAC + static IP (saves `deviceUuid`, `deviceId`, `deviceMac`)\n5. Run **Auth → User Register** or **User Login** (saves `userToken`)\n6. Run **Devices → Register Device to User** linking the provisioned frame\n7. Run **Device Hardware → Update Dynamic IP** to simulate frame reporting its LAN IP\n8. For image upload, pick a local JPG/PNG in the **Upload Image** request\n\n## Default test credentials\n- Admin: admin@iris-artframe.vercel.app / Admin@Iris2026\n- Sample MAC: B8:27:EB:AA:BB:FF → device ID IRIS-B827EBAABBFF\n- Sample static IP: 192.168.1.100 (unique per device, set at provisioning)\n\n## Auth headers\n- User/Admin routes: `Authorization: Bearer {{userToken}}` or `{{adminToken}}`\n- Device hardware (dynamic IP): no auth — send `mac` + `dynamic_ip` in JSON body\n\n## IP addresses\n- **Static IP** — required at admin provisioning; embedded in QR payload; never changes\n- **Dynamic IP** — reported by hardware on boot via MAC address; can be updated manually in web UI",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,6 +12,9 @@
     { "key": "deviceApiKey", "value": "" },
     { "key": "deviceUuid", "value": "" },
     { "key": "deviceId", "value": "IRIS-B827EBAABBFF" },
+    { "key": "deviceMac", "value": "B8:27:EB:AA:BB:FF" },
+    { "key": "provisionStaticIp", "value": "192.168.1.100" },
+    { "key": "dynamicIp", "value": "192.168.1.50" },
     { "key": "imageUuid", "value": "" },
     { "key": "imagePublicId", "value": "" },
     { "key": "jobId", "value": "" },
@@ -234,10 +237,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mac\": \"{{provisionMac}}\",\n  \"name\": \"{{provisionName}}\"\n}"
+              "raw": "{\n  \"mac\": \"{{provisionMac}}\",\n  \"name\": \"{{provisionName}}\",\n  \"static_ip\": \"{{provisionStaticIp}}\"\n}"
             },
             "url": "{{baseUrl}}/api/admin/devices/provision",
-            "description": "Provision a new frame from MAC address. Returns `api_key` (shown once!) and QR data. Change `provisionMac` if device already exists."
+            "description": "Provision a new frame from MAC address + static IP (both required). Returns QR payload (includes mac, static_ip, device_id), QR image, and api_key (shown once). Change `provisionMac` or `provisionStaticIp` if device/IP already exists."
           },
           "response": [],
           "event": [
@@ -251,7 +254,9 @@
                   "    if (json.device) {",
                   "        pm.collectionVariables.set('deviceUuid', json.device.id);",
                   "        pm.collectionVariables.set('deviceId', json.device.device_id);",
+                  "        if (json.device.mac) pm.collectionVariables.set('deviceMac', json.device.mac);",
                   "    }",
+                  "    if (json.qr_payload) console.log('QR payload:', json.qr_payload);",
                   "    console.log('IMPORTANT: api_key saved to deviceApiKey — also copy from response!');",
                   "}",
                   "pm.test('Provision or conflict', () => pm.expect([201, 409]).to.include(pm.response.code));"
@@ -267,7 +272,7 @@
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
             "url": "{{baseUrl}}/api/admin/devices/{{deviceUuid}}/qr",
-            "description": "Regenerate QR payload for a provisioned device (uses internal UUID `deviceUuid`)."
+            "description": "Regenerate QR payload for a provisioned device (uses internal UUID `deviceUuid`). QR includes device_id, mac, and static_ip."
           },
           "response": [],
           "event": [
@@ -276,8 +281,36 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Has QR data', () => pm.expect(pm.response.json()).to.have.property('qr_data_url'));"
+                  "const json = pm.response.json();",
+                  "pm.test('Has QR data', () => pm.expect(json).to.have.property('qr_data_url'));",
+                  "if (json.qr_payload) console.log('QR payload:', json.qr_payload);"
                 ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Device (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"static_ip\": \"{{provisionStaticIp}}\",\n  \"dynamic_ip\": \"{{dynamicIp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/devices/{{deviceUuid}}",
+            "description": "Admin: update static IP and/or dynamic IP for any provisioned device."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"],
                 "type": "text/javascript"
               }
             }
@@ -359,10 +392,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Bedroom Frame\",\n  \"ip_address\": \"192.168.1.50\"\n}"
+              "raw": "{\n  \"name\": \"Bedroom Frame\",\n  \"dynamic_ip\": \"{{dynamicIp}}\"\n}"
             },
             "url": "{{baseUrl}}/api/devices/{{deviceUuid}}",
-            "description": "Update device nickname or IP address."
+            "description": "Update device nickname or dynamic IP (manual update from web UI)."
           },
           "response": [],
           "event": [
@@ -557,15 +590,19 @@
       ]
     },
     {
-      "name": "Device Poll (Pi / Frame)",
+      "name": "Device Hardware (Pi / Frame)",
       "item": [
         {
-          "name": "Poll for Pending Job",
+          "name": "Update Dynamic IP",
           "request": {
-            "method": "GET",
-            "header": [{ "key": "x-api-key", "value": "{{deviceApiKey}}" }],
-            "url": "{{baseUrl}}/api/device/poll",
-            "description": "Frame polls for pending display jobs. Requires `deviceApiKey` from provision response."
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mac\": \"{{deviceMac}}\",\n  \"dynamic_ip\": \"{{dynamicIp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/device/dynamic-ip",
+            "description": "Hardware reports dynamic IP on boot or when LAN IP changes. No auth required — device is identified by MAC address. Also marks device as online (updates last_seen_at)."
           },
           "response": [],
           "event": [
@@ -575,37 +612,12 @@
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const json = pm.response.json();",
-                  "if (json.job && json.job.job_id) {",
-                  "    pm.collectionVariables.set('jobId', json.job.job_id);",
-                  "    console.log('Pending job found:', json.job.job_id);",
-                  "}"
+                  "pm.test('Dynamic IP updated', () => {",
+                  "    pm.expect(json.status).to.eql('success');",
+                  "    pm.expect(json.dynamic_ip).to.eql(pm.collectionVariables.get('dynamicIp'));",
+                  "});",
+                  "if (json.device_id) pm.collectionVariables.set('deviceId', json.device_id);"
                 ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "Acknowledge Display Job",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "x-api-key", "value": "{{deviceApiKey}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"job_id\": \"{{jobId}}\",\n  \"status\": \"success\",\n  \"message\": \"Displayed on frame\"\n}"
-            },
-            "url": "{{baseUrl}}/api/device/poll/ack",
-            "description": "Frame confirms display completed. Use `jobId` from poll or queue display response."
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"],
                 "type": "text/javascript"
               }
             }
@@ -689,7 +701,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mac\": \"{{provisionMac}}\",\n  \"name\": \"{{provisionName}}\"\n}"
+              "raw": "{\n  \"mac\": \"{{provisionMac}}\",\n  \"name\": \"{{provisionName}}\",\n  \"static_ip\": \"{{provisionStaticIp}}\"\n}"
             },
             "url": "{{baseUrl}}/api/admin/devices/provision"
           },
@@ -705,6 +717,7 @@
                   "    if (json.device) {",
                   "        pm.collectionVariables.set('deviceUuid', json.device.id);",
                   "        pm.collectionVariables.set('deviceId', json.device.device_id);",
+                  "        if (json.device.mac) pm.collectionVariables.set('deviceMac', json.device.mac);",
                   "    }",
                   "}"
                 ],
@@ -827,11 +840,15 @@
           ]
         },
         {
-          "name": "8. Device Poll",
+          "name": "8. Update Dynamic IP (Hardware)",
           "request": {
-            "method": "GET",
-            "header": [{ "key": "x-api-key", "value": "{{deviceApiKey}}" }],
-            "url": "{{baseUrl}}/api/device/poll"
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mac\": \"{{deviceMac}}\",\n  \"dynamic_ip\": \"{{dynamicIp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/device/dynamic-ip"
           },
           "response": [],
           "event": [
@@ -839,29 +856,12 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const job = pm.response.json().job;",
-                  "if (job) pm.collectionVariables.set('jobId', job.job_id);"
+                  "pm.test('Dynamic IP updated', () => pm.response.to.have.status(200));"
                 ],
                 "type": "text/javascript"
               }
             }
           ]
-        },
-        {
-          "name": "9. Device Ack",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "x-api-key", "value": "{{deviceApiKey}}" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"job_id\": \"{{jobId}}\",\n  \"status\": \"success\",\n  \"message\": \"Displayed\"\n}"
-            },
-            "url": "{{baseUrl}}/api/device/poll/ack"
-          },
-          "response": []
         }
       ]
     }

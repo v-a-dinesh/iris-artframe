@@ -11,10 +11,32 @@ export function isValidMac(mac: string): boolean {
   return cleaned.length === 12;
 }
 
-export function buildQrPayload(deviceId: string): string {
+export function formatMac(mac: string): string {
+  const cleaned = mac.replace(/[^a-fA-F0-9]/g, '').toUpperCase();
+  if (cleaned.length !== 12) {
+    throw new Error('Invalid MAC address. Expected 12 hex characters.');
+  }
+  return cleaned.match(/.{2}/g)!.join(':');
+}
+
+export function deviceIdToMac(deviceId: string): string {
+  const cleaned = deviceId.replace(/^IRIS-/i, '').replace(/[^a-fA-F0-9]/g, '').toUpperCase();
+  if (cleaned.length !== 12) {
+    throw new Error('Invalid device ID for MAC conversion.');
+  }
+  return formatMac(cleaned);
+}
+
+export function buildQrPayload(
+  deviceId: string,
+  opts?: { mac?: string; static_ip?: string }
+): string {
+  const mac = opts?.mac ? formatMac(opts.mac) : deviceIdToMac(deviceId);
   return JSON.stringify({
     type: 'iris-artframe',
     device_id: deviceId,
+    mac,
+    static_ip: opts?.static_ip,
     version: 1,
   });
 }

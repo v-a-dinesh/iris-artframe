@@ -1,7 +1,7 @@
 import { Router, type Response, type NextFunction, type Request } from 'express';
 import { z } from 'zod';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
-import { provisionDevice, listAllDevices, regenerateQr } from '../services/device.service.js';
+import { provisionDevice, listAllDevices, regenerateQr, adminUpdateDevice } from '../services/device.service.js';
 import { isValidMac } from '../utils/deviceId.js';
 import { paramId } from '../utils/params.js';
 
@@ -23,6 +23,7 @@ router.post('/devices/provision', async (req: Request, res: Response, next: Next
     const schema = z.object({
       mac: z.string().min(1),
       name: z.string().optional(),
+      static_ip: z.string().ip(),
     });
     const data = schema.parse(req.body);
 
@@ -34,7 +35,7 @@ router.post('/devices/provision', async (req: Request, res: Response, next: Next
       return;
     }
 
-    const result = await provisionDevice(data);
+    const result = await provisionDevice({ mac: data.mac, name: data.name, staticIp: data.static_ip });
     res.status(201).json({ status: 'success', ...result });
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -50,6 +51,29 @@ router.get('/devices/:id/qr', async (req: Request, res: Response, next: NextFunc
     const result = await regenerateQr(paramId(req));
     res.json({ status: 'success', ...result });
   } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/devices/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const schema = z.object({
+      name: z.string().optional(),
+      static_ip: z.string().ip().optional().nullable(),
+      dynamic_ip: z.string().ip().optional().nullable(),
+    });
+    const data = schema.parse(req.body);
+    const device = await adminUpdateDevice(paramId(req), {
+      name: data.name,
+      static_ip: data.static_ip ?? undefined,
+      dynamic_ip: data.dynamic_ip ?? undefined,
+    });
+    res.json({ status: 'success', device });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ status: 'error', message: err.errors[0].message });
+      return;
+    }
     next(err);
   }
 });

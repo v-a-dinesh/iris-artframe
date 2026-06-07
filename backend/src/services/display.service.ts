@@ -30,7 +30,7 @@ export async function queueDisplayJob(userId: string, deviceUuid: string, imageI
   return {
     job_id: jobId,
     status: 'pending' as const,
-    message: 'Display job queued. Device will fetch on next poll.',
+    message: 'Display job queued.',
     image_url: imageUrl,
   };
 }

@@ -14,6 +14,10 @@ export interface Device {
   name: string | null;
   status: string;
   ip_address?: string | null;
+  static_ip?: string | null;
+  mac?: string | null;
+  dynamic_ip?: string | null;
+  dynamic_ip_updated_at?: string | null;
   registered_at?: string;
   owner_count?: number;
   created_at?: string;

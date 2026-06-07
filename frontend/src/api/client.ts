@@ -47,7 +47,7 @@ export const devicesApi = {
   list: () => api.get<{ status: string; devices: Device[] }>('/devices'),
   register: (data: { device_id: string; name?: string }) =>
     api.post<{ status: string; device: Device }>('/devices/register', data),
-  update: (id: string, data: { name?: string; ip_address?: string }) =>
+  update: (id: string, data: { name?: string; ip_address?: string; dynamic_ip?: string }) =>
     api.patch<{ status: string; device: Device }>(`/devices/${id}`, data),
   remove: (id: string) => api.delete(`/devices/${id}`),
   display: (id: string, imageId: string) =>
@@ -73,10 +73,12 @@ export const imagesApi = {
 
 export const adminApi = {
   listDevices: () => api.get<{ status: string; devices: Device[] }>('/admin/devices'),
-  provision: (data: { mac: string; name?: string }) =>
+  provision: (data: { mac: string; name?: string; static_ip: string }) =>
     api.post<{ status: string } & ProvisionResult>('/admin/devices/provision', data),
   getQr: (id: string) =>
     api.get<{ status: string; device: Device; qr_payload: string; qr_data_url: string }>(
       `/admin/devices/${id}/qr`
     ),
+  updateDevice: (id: string, data: { name?: string; static_ip?: string; dynamic_ip?: string }) =>
+    api.patch<{ status: string; device: Device }>(`/admin/devices/${id}`, data),
 };

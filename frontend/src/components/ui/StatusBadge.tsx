@@ -13,7 +13,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
           ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30'
           : 'bg-ink-200/80 text-ink-600 ring-1 ring-ink-300/80 dark:bg-ink-700/80 dark:text-ink-300 dark:ring-ink-600/50'
       }`}
-      title={isOnline ? 'Frame is connected and polling' : 'Frame not connected yet — run the poll client on your Pi'}
+      title={isOnline ? 'Frame is connected' : 'Frame not connected — hardware has not reported dynamic IP recently'}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-ink-400'}`} />
       {label}

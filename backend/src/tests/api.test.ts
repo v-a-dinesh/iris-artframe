@@ -10,12 +10,14 @@ dotenv.config({ path: join(__dirname, '../../../.env') });
 
 import { macToDeviceId, parseQrPayload, isValidMac } from '../utils/deviceId.js';
 import { registerUser, loginUser } from '../services/auth.service.js';
-import { provisionDevice, registerDeviceForUser } from '../services/device.service.js';
+import { provisionDevice, registerDeviceForUser, updateDeviceDynamicIp, updateDeviceDynamicIpByMac } from '../services/device.service.js';
 import { uploadImage, getImageByPublicId } from '../services/image.service.js';
-import { queueDisplayJob, getPendingJobForDevice, acknowledgeJob } from '../services/display.service.js';
+import { queueDisplayJob } from '../services/display.service.js';
 
 const TEST_EMAIL = `test-${Date.now()}@iris-test.com`;
-const TEST_MAC = 'B8:27:EB:AA:BB:CC';
+const TEST_MAC_SUFFIX = Date.now().toString(16).slice(-6).toUpperCase().padStart(6, '0');
+const TEST_MAC = `B8:27:EB:${TEST_MAC_SUFFIX.slice(0, 2)}:${TEST_MAC_SUFFIX.slice(2, 4)}:${TEST_MAC_SUFFIX.slice(4, 6)}`;
+const TEST_STATIC_IP = `10.${(Date.now() % 200) + 10}.${(Date.now() % 200) + 10}.${(Date.now() % 200) + 10}`;
 let userId = '';
 let deviceUuid = '';
 let deviceIdStr = '';
@@ -53,7 +55,7 @@ describe('Iris Art Frame API Integration', () => {
   });
 
   it('provisions a device from MAC', async () => {
-    const result = await provisionDevice({ mac: TEST_MAC, name: 'Test Frame' });
+    const result = await provisionDevice({ mac: TEST_MAC, name: 'Test Frame', staticIp: TEST_STATIC_IP });
     assert.ok(result.device.id);
     assert.ok(result.api_key);
     assert.ok(result.qr_data_url.startsWith('data:image/png'));
@@ -112,23 +114,15 @@ describe('Iris Art Frame API Integration', () => {
     jobId = result.job_id;
   });
 
-  it('device polls pending job', async () => {
-    const job = await getPendingJobForDevice(deviceUuid);
-    assert.ok(job);
-    assert.equal(job.job_id, jobId);
-    assert.ok(job.image_url.includes(publicId));
+  it('updates device dynamic IP', async () => {
+    const device = await updateDeviceDynamicIp(deviceUuid, '192.168.1.105');
+    assert.ok(device);
+    assert.equal(device?.dynamic_ip, '192.168.1.105');
   });
 
-  it('device acknowledges job', async () => {
-    const result = await acknowledgeJob(deviceUuid, jobId, {
-      status: 'success',
-      message: 'Displayed on E-Ink',
-    });
-    assert.equal(result.status, 'completed');
-  });
-
-  it('no pending job after ack', async () => {
-    const job = await getPendingJobForDevice(deviceUuid);
-    assert.equal(job, null);
+  it('updates device dynamic IP by MAC', async () => {
+    const device = await updateDeviceDynamicIpByMac(TEST_MAC, '192.168.1.50');
+    assert.ok(device);
+    assert.equal(device?.dynamic_ip, '192.168.1.50');
   });
 });

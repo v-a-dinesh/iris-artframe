@@ -8,19 +8,54 @@ import StatusBadge from '../components/ui/StatusBadge';
 import { IconDevices, IconPlus, IconQr } from '../components/icons';
 import { devicesApi } from '../api/client';
 import type { Device } from '../types';
+import axios from 'axios';
 
 export default function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [dynamicIpInput, setDynamicIpInput] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const loadDevices = () => {
+    setLoading(true);
+    devicesApi
+      .list()
+      .then((res) => setDevices(res.data.devices))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    devicesApi.list().then((res) => setDevices(res.data.devices)).finally(() => setLoading(false));
+    loadDevices();
   }, []);
 
   const handleRemove = async (id: string) => {
     if (!confirm('Unregister this device from your account?')) return;
     await devicesApi.remove(id);
     setDevices((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const startEditDynamicIp = (device: Device) => {
+    setEditingId(device.id);
+    setDynamicIpInput(device.dynamic_ip || '');
+    setSaveError('');
+  };
+
+  const handleSaveDynamicIp = async (deviceId: string) => {
+    setSaveError('');
+    setSaving(true);
+    try {
+      const res = await devicesApi.update(deviceId, { dynamic_ip: dynamicIpInput.trim() });
+      setDevices((prev) => prev.map((d) => (d.id === deviceId ? res.data.device : d)));
+      setEditingId(null);
+      setDynamicIpInput('');
+    } catch (err) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Failed to update IP';
+      setSaveError(message || 'Failed to update IP');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -69,10 +104,66 @@ export default function DevicesPage() {
                 <StatusBadge status={device.status} />
               </div>
 
+              <div className="mt-4 space-y-2 rounded-xl border border-ink-200/80 bg-ink-50/50 p-3 dark:border-ink-700/50 dark:bg-ink-900/30">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted">Static IP</span>
+                  <span className="font-mono text-body">{device.static_ip || '—'}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted">Dynamic IP</span>
+                  <span className="font-mono text-body">{device.dynamic_ip || '—'}</span>
+                </div>
+                {device.dynamic_ip_updated_at && (
+                  <p className="text-xs text-subtle">
+                    Dynamic IP updated {new Date(device.dynamic_ip_updated_at).toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              {editingId === device.id ? (
+                <div className="mt-4 space-y-2">
+                  <label className="label">Update dynamic IP manually</label>
+                  <input
+                    className="input-field font-mono text-sm"
+                    value={dynamicIpInput}
+                    onChange={(e) => setDynamicIpInput(e.target.value)}
+                    placeholder="192.168.1.105"
+                  />
+                  {saveError && <p className="text-xs text-red-400">{saveError}</p>}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn-primary flex-1 text-sm"
+                      disabled={saving || !dynamicIpInput.trim()}
+                      onClick={() => handleSaveDynamicIp(device.id)}
+                    >
+                      {saving ? 'Saving...' : 'Save dynamic IP'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary text-sm"
+                      onClick={() => {
+                        setEditingId(null);
+                        setSaveError('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => startEditDynamicIp(device)}
+                  className="mt-4 text-xs font-medium text-iris-600 hover:text-iris-500 dark:text-iris-400"
+                >
+                  Update dynamic IP manually
+                </button>
+              )}
+
               {device.status !== 'active' && (
-                <p className="mt-4 text-xs leading-relaxed text-muted">
-                  Linked to your account. The frame will show Online once the Pi is running the poll client with its
-                  API key.
+                <p className="mt-3 text-xs leading-relaxed text-muted">
+                  Frame shows Online after the hardware reports its dynamic IP via the device API.
                 </p>
               )}
 

@@ -49,6 +49,7 @@ router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => 
     const schema = z.object({
       name: z.string().optional(),
       ip_address: z.string().optional(),
+      dynamic_ip: z.string().ip().optional(),
     });
     const data = schema.parse(req.body);
     const device = await updateDevice(req.user!.id, paramId(req), data);

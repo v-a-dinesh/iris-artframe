@@ -11,7 +11,7 @@ import devicesRoutes from './routes/devices.routes.js';
 import imagesRoutes from './routes/images.routes.js';
 import publicRoutes from './routes/public.routes.js';
 import adminRoutes from './routes/admin.routes.js';
-import devicePollRoutes from './routes/devicePoll.routes.js';
+import deviceHardwareRoutes from './routes/deviceHardware.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -63,7 +63,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/devices', devicesRoutes);
 app.use('/api/images', uploadLimiter, imagesRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/device', devicePollRoutes);
+app.use('/api/device', deviceHardwareRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

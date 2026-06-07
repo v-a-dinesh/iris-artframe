@@ -1,6 +1,8 @@
 interface PrintLabelProps {
   deviceId: string;
   deviceName?: string | null;
+  mac?: string | null;
+  staticIp?: string | null;
   qrDataUrl: string;
 }
 
@@ -24,7 +26,7 @@ function PrintLogoMark() {
   );
 }
 
-export default function PrintLabel({ deviceId, deviceName, qrDataUrl }: PrintLabelProps) {
+export default function PrintLabel({ deviceId, deviceName, mac, staticIp, qrDataUrl }: PrintLabelProps) {
   return (
     <div className="print-label-sheet">
       <div className="print-label-card">
@@ -50,6 +52,18 @@ export default function PrintLabel({ deviceId, deviceName, qrDataUrl }: PrintLab
 
         {/* Device info */}
         <div className="print-label-device">
+          {mac && (
+            <>
+              <p className="print-label-device-label">MAC address</p>
+              <p className="print-label-device-id">{mac}</p>
+            </>
+          )}
+          {staticIp && (
+            <>
+              <p className="print-label-device-label">Static IP</p>
+              <p className="print-label-device-id">{staticIp}</p>
+            </>
+          )}
           <p className="print-label-device-label">Device ID</p>
           <p className="print-label-device-id">{deviceId}</p>
           {deviceName && <p className="print-label-device-name">{deviceName}</p>}

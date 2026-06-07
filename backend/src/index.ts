@@ -23,17 +23,28 @@ const PORT = process.env.PORT || 3001;
 
 const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
   .split(',')
-  .map((o) => o.trim());
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+function isAllowedCorsOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (corsOrigins.includes('*')) return true;
+  if (corsOrigins.includes(origin)) return true;
+  // Allow Vercel preview deploys when a *.vercel.app origin is configured
+  if (
+    corsOrigins.some((o) => o.includes('vercel.app')) &&
+    /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)
+  ) {
+    return true;
+  }
+  return false;
+}
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || corsOrigins.includes(origin) || corsOrigins.includes('*')) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      callback(null, isAllowedCorsOrigin(origin));
     },
     credentials: true,
   })
@@ -60,6 +71,7 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`Iris Art Frame API running on port ${PORT}`);
   console.log(`Public base URL: ${process.env.PUBLIC_BASE_URL || `http://localhost:${PORT}`}`);
+  console.log(`CORS origins: ${corsOrigins.join(', ') || '(none configured)'}`);
 });
 
 export default app;

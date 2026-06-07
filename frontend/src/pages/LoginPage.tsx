@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import AuthLayout, { AuthLink } from '../components/AuthLayout';
 import PasswordInput from '../components/ui/PasswordInput';
 import { useAuth } from '../context/AuthContext';
 import { getSavedLoginEmail, saveLoginEmail, useAutofillSync } from '../hooks/useAutofillSync';
+import { redirectAfterLogin, tryStoreLoginCredential } from '../utils/saveLoginCredential';
 import axios from 'axios';
 
 export default function LoginPage() {
@@ -12,33 +12,47 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
-  const navigate = useNavigate();
 
   useAutofillSync([
     { id: 'login-email', setValue: setEmail },
     { id: 'login-password', setValue: setPassword },
   ]);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    const trimmedEmail = email.trim();
+    const loginPassword = password;
+
     try {
-      const trimmedEmail = email.trim();
-      await login(trimmedEmail, password);
+      await login(trimmedEmail, loginPassword);
       saveLoginEmail(trimmedEmail);
-      navigate('/dashboard');
+
+      // Explicit save prompt (required for React SPAs — client-side navigate alone won't trigger Chrome).
+      await tryStoreLoginCredential(trimmedEmail, loginPassword);
+
+      // Full page load so Chrome's built-in password manager also recognizes success.
+      redirectAfterLogin('/dashboard');
+      return;
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Login failed';
       setError(message || 'Login failed');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
     <AuthLayout title="Welcome back" subtitle="Sign in to your Iris Art Frame account">
-      <form onSubmit={handleSubmit} className="space-y-5" autoComplete="on" method="post">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5"
+        autoComplete="on"
+        method="post"
+        action="/login"
+        name="login"
+      >
         {error && <div className="alert-error">{error}</div>}
         <div>
           <label className="label" htmlFor="login-email">
@@ -46,14 +60,16 @@ export default function LoginPage() {
           </label>
           <input
             id="login-email"
-            name="email"
-            type="email"
+            name="username"
+            type="text"
+            inputMode="email"
             className="input-field"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
-            autoComplete="username email"
+            autoComplete="username"
+            spellCheck={false}
           />
         </div>
         <div>

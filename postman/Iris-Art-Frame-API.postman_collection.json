@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "iris-artframe-api-v1",
     "name": "Iris Art Frame API",
-    "description": "Complete API collection for Iris Art Frame.\n\n## Import\n1. Postman → Import → select this file\n2. Set `baseUrl` (localhost: http://localhost:3001, production: https://iris-artframe.onrender.com)\n3. Run **Auth → Admin Login** first (saves `adminToken`)\n4. Run **Admin → Provision Device** with MAC + static IP (saves `deviceUuid`, `deviceId`, `deviceMac`)\n5. Run **Auth → User Register** or **User Login** (saves `userToken`)\n6. Run **Devices → Register Device to User** linking the provisioned frame\n7. Run **Device Hardware → Update Dynamic IP** to simulate frame reporting its LAN IP\n8. For image upload, pick a local JPG/PNG in the **Upload Image** request\n\n## Default test credentials\n- Admin: admin@iris-artframe.vercel.app / Admin@Iris2026\n- Sample MAC: B8:27:EB:AA:BB:FF → device ID IRIS-B827EBAABBFF\n- Sample static IP: 192.168.1.100 (unique per device, set at provisioning)\n\n## Auth headers\n- User/Admin routes: `Authorization: Bearer {{userToken}}` or `{{adminToken}}`\n- Device hardware (dynamic IP): no auth — send `mac` + `dynamic_ip` in JSON body\n\n## IP addresses\n- **Static IP** — required at admin provisioning; embedded in QR payload; never changes\n- **Dynamic IP** — reported by hardware on boot via MAC address; can be updated manually in web UI",
+    "description": "Complete API collection for Iris Art Frame.\n\n## Import\n1. Postman → Import → select this file\n2. Set `baseUrl` (localhost: http://localhost:3001, production: https://iris-artframe.onrender.com)\n3. Run **Auth → Admin Login** first (saves `adminToken`)\n4. Run **Admin → Provision Device** with MAC + static IP (saves `deviceUuid`, `deviceId`, `deviceMac`)\n5. Run **Auth → User Register** or **User Login** (saves `userToken`)\n6. Run **Devices → Register Device to User** linking the provisioned frame\n7. Run **Device Hardware → Update Dynamic IP** to simulate frame reporting its LAN IP\n8. For image upload, pick a local JPG/PNG in the **Upload Image** request\n\n## Default test credentials\n- Admin: admin@iris-artframe.vercel.app / Admin@Iris2026\n- Sample MAC / device ID: B8:27:EB:AA:BB:FF (same value — MAC is the device identifier)\n- Sample static IP: 192.168.1.100 (unique per device, set at provisioning)\n\n## Auth headers\n- User/Admin routes: `Authorization: Bearer {{userToken}}` or `{{adminToken}}`\n- Device hardware (dynamic IP): no auth — send `mac` + `dynamic_ip` in JSON body\n\n## IP addresses\n- **Static IP** — required at admin provisioning; embedded in QR payload; never changes\n- **Dynamic IP** — reported by hardware on boot via MAC address; can be updated manually in web UI",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,7 +11,7 @@
     { "key": "adminToken", "value": "" },
     { "key": "deviceApiKey", "value": "" },
     { "key": "deviceUuid", "value": "" },
-    { "key": "deviceId", "value": "IRIS-B827EBAABBFF" },
+    { "key": "deviceId", "value": "B8:27:EB:AA:BB:FF" },
     { "key": "deviceMac", "value": "B8:27:EB:AA:BB:FF" },
     { "key": "provisionStaticIp", "value": "192.168.1.100" },
     { "key": "dynamicIp", "value": "192.168.1.50" },

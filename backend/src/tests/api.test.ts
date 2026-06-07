@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '../../.env') });
 dotenv.config({ path: join(__dirname, '../../../.env') });
 
-import { macToDeviceId, parseQrPayload, isValidMac } from '../utils/deviceId.js';
+import { macToDeviceId, parseQrPayload, isValidMac, normalizeDeviceId } from '../utils/deviceId.js';
 import { registerUser, loginUser } from '../services/auth.service.js';
 import { provisionDevice, registerDeviceForUser, updateDeviceDynamicIp, updateDeviceDynamicIpByMac } from '../services/device.service.js';
 import { uploadImage, getImageByPublicId } from '../services/image.service.js';
@@ -26,15 +26,17 @@ let publicId = '';
 let jobId = '';
 
 describe('Iris Art Frame API Integration', () => {
-  it('macToDeviceId converts MAC correctly', () => {
-    assert.equal(macToDeviceId('b8:27:eb:12:34:56'), 'IRIS-B827EB123456');
+  it('macToDeviceId uses MAC as device id', () => {
+    assert.equal(macToDeviceId('b8:27:eb:12:34:56'), 'B8:27:EB:12:34:56');
+    assert.equal(normalizeDeviceId('IRIS-B827EB123456'), 'B8:27:EB:12:34:56');
     assert.equal(isValidMac('B8:27:EB:AA:BB:CC'), true);
   });
 
   it('parseQrPayload handles JSON and plain text', () => {
-    const json = JSON.stringify({ type: 'iris-artframe', device_id: 'IRIS-B827EB123456' });
-    assert.equal(parseQrPayload(json), 'IRIS-B827EB123456');
-    assert.equal(parseQrPayload('IRIS-B827EB123456'), 'IRIS-B827EB123456');
+    const json = JSON.stringify({ type: 'iris-artframe', device_id: 'B8:27:EB:12:34:56' });
+    assert.equal(parseQrPayload(json), 'B8:27:EB:12:34:56');
+    assert.equal(parseQrPayload('B8:27:EB:12:34:56'), 'B8:27:EB:12:34:56');
+    assert.equal(parseQrPayload('IRIS-B827EB123456'), 'B8:27:EB:12:34:56');
   });
 
   it('registers a test user', async () => {

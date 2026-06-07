@@ -21,22 +21,6 @@ export function normalizeDeviceId(input: string): string {
   return formatMac(trimmed);
 }
 
-/** Device ID is the normalized MAC address — no separate IRIS- prefix. */
-export function macToDeviceId(mac: string): string {
-  return normalizeDeviceId(mac);
-}
-
-export function buildQrPayload(deviceId: string, opts?: { static_ip?: string }): string {
-  const mac = normalizeDeviceId(deviceId);
-  return JSON.stringify({
-    type: 'iris-artframe',
-    device_id: mac,
-    mac,
-    static_ip: opts?.static_ip,
-    version: 1,
-  });
-}
-
 export function parseQrPayload(raw: string): string {
   const trimmed = raw.trim();
 

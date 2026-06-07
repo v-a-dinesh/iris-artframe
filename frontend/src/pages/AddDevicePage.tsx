@@ -5,23 +5,8 @@ import PageHeader from '../components/ui/PageHeader';
 import QRScanner from '../components/QRScanner';
 import { IconQr } from '../components/icons';
 import { devicesApi } from '../api/client';
+import { normalizeDeviceId, parseQrPayload } from '../utils/deviceId';
 import axios from 'axios';
-
-function parseDeviceId(raw: string): string {
-  const trimmed = raw.trim();
-  try {
-    const parsed = JSON.parse(trimmed) as { device_id?: string };
-    if (parsed.device_id) return parsed.device_id;
-  } catch {
-    // not JSON
-  }
-  const urlMatch = trimmed.match(/device_id=([A-Za-z0-9-]+)/);
-  if (urlMatch) return urlMatch[1].toUpperCase();
-  const irisMatch = trimmed.match(/IRIS-[A-F0-9]{12}/i);
-  if (irisMatch) return irisMatch[0].toUpperCase();
-  if (/^IRIS-[A-F0-9]{12}$/i.test(trimmed)) return trimmed.toUpperCase();
-  throw new Error('Could not parse device ID');
-}
 
 export default function AddDevicePage() {
   const [deviceId, setDeviceId] = useState('');
@@ -34,7 +19,7 @@ export default function AddDevicePage() {
 
   const handleScan = useCallback((text: string) => {
     try {
-      const id = parseDeviceId(text);
+      const id = parseQrPayload(text);
       setDeviceId(id);
       setSuccess(`Scanned successfully: ${id}`);
       setError('');
@@ -48,7 +33,8 @@ export default function AddDevicePage() {
     setError('');
     setLoading(true);
     try {
-      await devicesApi.register({ device_id: deviceId, name: name || undefined });
+      const mac = normalizeDeviceId(deviceId);
+      await devicesApi.register({ device_id: mac, name: name || undefined });
       navigate('/devices');
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Registration failed';
@@ -106,14 +92,15 @@ export default function AddDevicePage() {
           {success && <div className="alert-success">{success}</div>}
 
           <div>
-            <label className="label">Device ID</label>
+            <label className="label">MAC address</label>
             <input
               className="input-field font-mono"
               value={deviceId}
-              onChange={(e) => setDeviceId(e.target.value.toUpperCase())}
-              placeholder="IRIS-B827EB123456"
+              onChange={(e) => setDeviceId(e.target.value)}
+              placeholder="B8:27:EB:12:34:56"
               required
             />
+            <p className="mt-2 text-xs text-subtle">AA:BB:CC:DD:EE:FF or AABBCCDDEEFF</p>
           </div>
           <div>
             <label className="label">

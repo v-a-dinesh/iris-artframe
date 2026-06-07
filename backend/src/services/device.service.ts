@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'qrcode';
 import { db } from '../config/db.js';
-import { macToDeviceId, buildQrPayload, isValidMac, formatMac, deviceIdToMac } from '../utils/deviceId.js';
+import { macToDeviceId, buildQrPayload, isValidMac, normalizeDeviceId } from '../utils/deviceId.js';
 import { generateApiKey, hashApiKey, verifyApiKey } from '../utils/apiKey.js';
 import type { AppError, DeviceRecord } from '../types/index.js';
 import { asString, asNumber, createError } from '../types/index.js';
@@ -83,7 +83,7 @@ export async function provisionDevice({
     args: [id, deviceIdStr, apiKeyHash, name || null, staticIp],
   });
 
-  const qrPayload = buildQrPayload(deviceIdStr, { mac, static_ip: staticIp });
+  const qrPayload = buildQrPayload(deviceIdStr, { static_ip: staticIp });
   const qrDataUrl = await QRCode.toDataURL(qrPayload, {
     width: 400,
     margin: 2,
@@ -97,7 +97,7 @@ export async function provisionDevice({
       name: name || null,
       status: 'inactive',
       static_ip: staticIp,
-      mac: formatMac(mac),
+      mac: deviceIdStr,
     },
     api_key: apiKey,
     qr_payload: qrPayload,
@@ -123,10 +123,12 @@ export async function registerDeviceForUser(
   userId: string,
   { device_id, name }: { device_id: string; name?: string }
 ) {
+  const normalizedDeviceId = normalizeDeviceId(device_id);
+
   const deviceResult = await db.execute({
     sql: `SELECT id, device_id, name, status, ip_address, static_ip, dynamic_ip, dynamic_ip_updated_at, last_seen_at
           FROM devices WHERE device_id = ?`,
-    args: [device_id.toUpperCase()],
+    args: [normalizedDeviceId],
   });
 
   if (deviceResult.rows.length === 0) {
@@ -331,17 +333,18 @@ export async function regenerateQr(deviceUuid: string) {
   });
 
   return {
-    device: { ...device, mac: deviceIdToMac(device.device_id) },
+    device: { ...device, mac: normalizeDeviceId(device.device_id) },
     qr_payload: qrPayload,
     qr_data_url: qrDataUrl,
   };
 }
 
 export async function getDeviceByDeviceId(deviceId: string): Promise<DeviceRecord | null> {
+  const normalizedDeviceId = normalizeDeviceId(deviceId);
   const result = await db.execute({
     sql: `SELECT id, device_id, name, status, ip_address, static_ip, dynamic_ip, dynamic_ip_updated_at, last_seen_at, created_at
           FROM devices WHERE device_id = ?`,
-    args: [deviceId.toUpperCase()],
+    args: [normalizedDeviceId],
   });
   if (result.rows.length === 0) return null;
   return mapDeviceRow(result.rows[0] as Record<string, unknown>);

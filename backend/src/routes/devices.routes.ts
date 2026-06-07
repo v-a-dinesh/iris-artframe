@@ -31,7 +31,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
     });
     const data = schema.parse(req.body);
     const device = await registerDeviceForUser(req.user!.id, {
-      device_id: data.device_id.toUpperCase(),
+      device_id: data.device_id,
       name: data.name,
     });
     res.status(201).json({ status: 'success', device });

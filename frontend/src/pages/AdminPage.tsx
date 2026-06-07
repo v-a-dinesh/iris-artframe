@@ -172,9 +172,8 @@ export default function AdminPage() {
 
             <div className="mt-6 print-label-preview">
               <PrintLabel
-                deviceId={result.device?.device_id ?? ''}
+                mac={result.device?.mac ?? result.device?.device_id ?? ''}
                 deviceName={result.device?.name}
-                mac={result.device?.mac}
                 staticIp={result.device?.static_ip}
                 qrDataUrl={result.qr_data_url}
               />
@@ -183,9 +182,8 @@ export default function AdminPage() {
             {createPortal(
               <div id="print-label-portal">
                 <PrintLabel
-                  deviceId={result.device?.device_id ?? ''}
+                  mac={result.device?.mac ?? result.device?.device_id ?? ''}
                   deviceName={result.device?.name}
-                  mac={result.device?.mac}
                   staticIp={result.device?.static_ip}
                   qrDataUrl={result.qr_data_url}
                 />
@@ -212,7 +210,7 @@ export default function AdminPage() {
               <table className="min-w-[640px] w-full text-sm">
                 <thead>
                   <tr className="border-b border-ink-200 bg-ink-100/80 text-left text-xs uppercase tracking-wider text-muted dark:border-ink-700/50 dark:bg-ink-800/40">
-                    <th className="px-4 py-4 font-semibold sm:px-6">Device ID</th>
+                    <th className="px-4 py-4 font-semibold sm:px-6">MAC address</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Name</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">IP Addresses</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Status</th>

@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import AuthLayout, { AuthLink } from '../components/AuthLayout';
 import { IconEye, IconEyeOff } from '../components/icons';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +9,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     localStorage.removeItem('iris-login-email');
@@ -27,11 +25,11 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      // Full page redirect so Chrome detects successful login and shows "Save password?"
+      window.location.href = '/dashboard';
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Login failed';
       setError(message || 'Login failed');
-    } finally {
       setLoading(false);
     }
   };

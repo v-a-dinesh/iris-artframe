@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthLayout title="Reset password" subtitle="Set a new password for your account">
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" autoComplete="on">
         {error && <div className="alert-error">{error}</div>}
         {success && (
           <div className="alert-success">
@@ -52,20 +52,24 @@ export default function ForgotPasswordPage() {
         )}
 
         <div>
-          <label className="label">Email address</label>
+          <label className="label" htmlFor="reset-email">Email address</label>
           <input
+            id="reset-email"
+            name="email"
             type="email"
             className="input-field"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
-            autoComplete="email"
+            autoComplete="username email"
           />
         </div>
         <div>
-          <label className="label">New password</label>
+          <label className="label" htmlFor="reset-password">New password</label>
           <PasswordInput
+            id="reset-password"
+            name="new-password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="Min. 6 characters"
@@ -75,8 +79,10 @@ export default function ForgotPasswordPage() {
           />
         </div>
         <div>
-          <label className="label">Confirm password</label>
+          <label className="label" htmlFor="reset-password-confirm">Confirm password</label>
           <PasswordInput
+            id="reset-password-confirm"
+            name="confirm-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Repeat new password"

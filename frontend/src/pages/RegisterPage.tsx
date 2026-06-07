@@ -33,23 +33,24 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout title="Create account" subtitle="Start curating art for your digital frames">
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" autoComplete="on">
         {error && <div className="alert-error">{error}</div>}
         <div>
-          <label className="label">Full name</label>
-          <input name="name" className="input-field" value={form.name} onChange={handleChange} placeholder="Jane Doe" required />
+          <label className="label" htmlFor="register-name">Full name</label>
+          <input id="register-name" name="name" className="input-field" value={form.name} onChange={handleChange} placeholder="Jane Doe" required autoComplete="name" />
         </div>
         <div>
-          <label className="label">Email address</label>
-          <input name="email" type="email" className="input-field" value={form.email} onChange={handleChange} placeholder="you@example.com" required />
+          <label className="label" htmlFor="register-email">Email address</label>
+          <input id="register-email" name="email" type="email" className="input-field" value={form.email} onChange={handleChange} placeholder="you@example.com" required autoComplete="email" />
         </div>
         <div>
-          <label className="label">Mobile <span className="text-subtle">(optional)</span></label>
-          <input name="mobile" type="tel" className="input-field" value={form.mobile} onChange={handleChange} placeholder="+91 98765 43210" />
+          <label className="label" htmlFor="register-mobile">Mobile <span className="text-subtle">(optional)</span></label>
+          <input id="register-mobile" name="mobile" type="tel" className="input-field" value={form.mobile} onChange={handleChange} placeholder="+91 98765 43210" autoComplete="tel" />
         </div>
         <div>
-          <label className="label">Password</label>
+          <label className="label" htmlFor="register-password">Password</label>
           <PasswordInput
+            id="register-password"
             name="password"
             value={form.password}
             onChange={handleChange}

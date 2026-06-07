@@ -292,7 +292,7 @@
 @media print {
   @page {
     size: 4in 6in;
-    margin: 0.15in;
+    margin: 0.08in;
   }
 
   html,
@@ -300,8 +300,9 @@
     margin: 0 !important;
     padding: 0 !important;
     width: 4in !important;
-    height: 6in !important;
-    overflow: hidden !important;
+    min-height: 6in !important;
+    height: auto !important;
+    overflow: visible !important;
     background: white !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -316,56 +317,88 @@
   }
 
   #print-label-portal {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    width: 100% !important;
-    height: 100% !important;
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 3.84in !important;
+    max-height: 5.84in !important;
     margin: 0 !important;
     padding: 0 !important;
     page-break-before: avoid !important;
     page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   #print-label-portal .print-label-sheet {
     width: 100%;
     padding: 0;
+    margin: 0;
   }
 
   #print-label-portal .print-label-card {
     box-shadow: none !important;
     border: 2px solid #1a1a2e !important;
+    border-radius: 10px !important;
     max-width: 100% !important;
     width: 100% !important;
-    padding: 12px 10px !important;
+    max-height: 5.84in !important;
+    padding: 8px 7px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    box-sizing: border-box !important;
+  }
+
+  #print-label-portal .print-label-header {
+    margin-bottom: 6px !important;
+    gap: 8px !important;
   }
 
   #print-label-portal .print-label-header svg {
-    width: 40px !important;
-    height: 40px !important;
+    width: 32px !important;
+    height: 32px !important;
   }
 
   #print-label-portal .print-label-brand-name {
-    font-size: 15px !important;
+    font-size: 12px !important;
+  }
+
+  #print-label-portal .print-label-brand-tag {
+    font-size: 7px !important;
   }
 
   #print-label-portal .print-label-divider {
-    margin: 10px 0 !important;
+    margin: 6px 0 !important;
+  }
+
+  #print-label-portal .print-label-qr-wrap {
+    padding: 4px !important;
   }
 
   #print-label-portal .print-label-qr {
-    width: 130px !important;
-    height: 130px !important;
+    width: 108px !important;
+    height: 108px !important;
+  }
+
+  #print-label-portal .print-label-scan {
+    margin-top: 6px !important;
+    font-size: 8px !important;
   }
 
   #print-label-portal .print-label-device-id {
-    font-size: 13px !important;
+    margin-top: 3px !important;
+    font-size: 11px !important;
+  }
+
+  #print-label-portal .print-label-device-name {
+    margin-top: 3px !important;
+    font-size: 10px !important;
   }
 
   #print-label-portal .print-label-footer {
-    margin-top: 10px !important;
+    margin-top: 6px !important;
+    font-size: 7px !important;
   }
 
   .no-print {

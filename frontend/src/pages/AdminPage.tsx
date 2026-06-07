@@ -121,7 +121,8 @@ export default function AdminPage() {
           <div className="card border-gold-400/20 shadow-glow-gold">
             <h2 className="no-print font-display text-xl font-semibold text-heading">Printable label</h2>
             <p className="no-print mt-1 text-sm text-muted">
-              Preview — attach to the physical frame after printing
+              Preview — attach to the physical frame after printing. In the print dialog, set{' '}
+              <strong>Margins: None</strong> and turn off <strong>Headers and footers</strong>.
             </p>
 
             <div className="mt-6 print-label-preview">
@@ -141,13 +142,6 @@ export default function AdminPage() {
                 />
               </div>,
               document.body
-            )}
-
-            {result.api_key && (
-              <div className="alert-warning no-print mt-5">
-                <p className="font-semibold">Device API key — save now, shown once</p>
-                <p className="mt-2 break-all font-mono text-xs opacity-90">{result.api_key}</p>
-              </div>
             )}
 
             <button type="button" onClick={() => window.print()} className="btn-primary no-print mt-5 w-full">

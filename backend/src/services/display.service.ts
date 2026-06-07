@@ -90,18 +90,29 @@ export async function acknowledgeJob(
   return { log_id: logId, status: finalStatus };
 }
 
-export async function getDisplayLogs(userId: string, deviceUuid: string) {
-  await assertUserOwnsDevice(userId, deviceUuid);
+export async function getDisplayLogs(userId: string, deviceUuid: string, role?: string) {
+  await assertUserOwnsDevice(userId, deviceUuid, role);
 
-  const result = await db.execute({
-    sql: `SELECT dl.id, dl.status, dl.message, dl.created_at,
-            i.original_filename, i.public_id
-          FROM display_logs dl
-          JOIN images i ON i.id = dl.image_id
-          WHERE dl.device_id = ? AND dl.user_id = ?
-          ORDER BY dl.created_at DESC LIMIT 50`,
-    args: [deviceUuid, userId],
-  });
+  const result =
+    role === 'admin'
+      ? await db.execute({
+          sql: `SELECT dl.id, dl.status, dl.message, dl.created_at,
+                  i.original_filename, i.public_id
+                FROM display_logs dl
+                JOIN images i ON i.id = dl.image_id
+                WHERE dl.device_id = ?
+                ORDER BY dl.created_at DESC LIMIT 50`,
+          args: [deviceUuid],
+        })
+      : await db.execute({
+          sql: `SELECT dl.id, dl.status, dl.message, dl.created_at,
+                  i.original_filename, i.public_id
+                FROM display_logs dl
+                JOIN images i ON i.id = dl.image_id
+                WHERE dl.device_id = ? AND dl.user_id = ?
+                ORDER BY dl.created_at DESC LIMIT 50`,
+          args: [deviceUuid, userId],
+        });
 
   return result.rows.map((row) => ({
     id: asString(row.id),

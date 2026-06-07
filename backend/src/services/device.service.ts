@@ -287,7 +287,33 @@ export async function getDeviceByUuid(id: string): Promise<DeviceRecord | null> 
   return mapDeviceRow(result.rows[0] as Record<string, unknown>);
 }
 
-export async function assertUserOwnsDevice(userId: string, deviceUuid: string) {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Accept internal UUID or MAC address (device_id) in URL paths. */
+export async function resolveDeviceUuid(idOrMac: string): Promise<string> {
+  const trimmed = decodeURIComponent(idOrMac.trim());
+  if (UUID_RE.test(trimmed)) {
+    const device = await getDeviceByUuid(trimmed);
+    if (!device) throw createError('Device not found', 404);
+    return device.id;
+  }
+
+  if (!isValidMac(trimmed)) {
+    throw createError('Device not found', 404);
+  }
+
+  const device = await getDeviceByDeviceId(trimmed);
+  if (!device) throw createError('Device not found', 404);
+  return device.id;
+}
+
+export async function assertUserOwnsDevice(userId: string, deviceUuid: string, role?: string) {
+  if (role === 'admin') {
+    const device = await getDeviceByUuid(deviceUuid);
+    if (!device) throw createError('Device not found', 404);
+    return;
+  }
+
   const result = await db.execute({
     sql: 'SELECT id FROM user_devices WHERE user_id = ? AND device_id = ?',
     args: [userId, deviceUuid],

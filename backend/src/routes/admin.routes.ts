@@ -1,7 +1,7 @@
 import { Router, type Response, type NextFunction, type Request } from 'express';
 import { z } from 'zod';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.js';
-import { provisionDevice, listAllDevices, regenerateQr, adminUpdateDevice } from '../services/device.service.js';
+import { provisionDevice, listAllDevices, regenerateQr, adminUpdateDevice, resolveDeviceUuid } from '../services/device.service.js';
 import { isValidMac } from '../utils/deviceId.js';
 import { paramId } from '../utils/params.js';
 
@@ -48,7 +48,8 @@ router.post('/devices/provision', async (req: Request, res: Response, next: Next
 
 router.get('/devices/:id/qr', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await regenerateQr(paramId(req));
+    const deviceUuid = await resolveDeviceUuid(paramId(req));
+    const result = await regenerateQr(deviceUuid);
     res.json({ status: 'success', ...result });
   } catch (err) {
     next(err);
@@ -63,7 +64,8 @@ router.patch('/devices/:id', async (req: Request, res: Response, next: NextFunct
       dynamic_ip: z.string().ip().optional().nullable(),
     });
     const data = schema.parse(req.body);
-    const device = await adminUpdateDevice(paramId(req), {
+    const deviceUuid = await resolveDeviceUuid(paramId(req));
+    const device = await adminUpdateDevice(deviceUuid, {
       name: data.name,
       static_ip: data.static_ip ?? undefined,
       dynamic_ip: data.dynamic_ip ?? undefined,

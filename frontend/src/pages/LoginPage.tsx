@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout, { AuthLink } from '../components/AuthLayout';
+import PasswordInput from '../components/ui/PasswordInput';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -50,9 +51,7 @@ export default function LoginPage() {
               Forgot password?
             </AuthLink>
           </div>
-          <input
-            type="password"
-            className="input-field"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"

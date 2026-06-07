@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout, { AuthLink } from '../components/AuthLayout';
+import PasswordInput from '../components/ui/PasswordInput';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import type { RegisterForm } from '../types';
@@ -48,7 +49,15 @@ export default function RegisterPage() {
         </div>
         <div>
           <label className="label">Password</label>
-          <input name="password" type="password" className="input-field" value={form.password} onChange={handleChange} placeholder="Min. 6 characters" required minLength={6} />
+          <PasswordInput
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="Min. 6 characters"
+            required
+            minLength={6}
+            autoComplete="new-password"
+          />
         </div>
         <button type="submit" className="btn-primary w-full" disabled={loading}>
           {loading ? 'Creating account...' : 'Create account'}

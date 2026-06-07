@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import AuthLayout, { AuthLink } from '../components/AuthLayout';
+import PasswordInput from '../components/ui/PasswordInput';
 import { authApi } from '../api/client';
 import axios from 'axios';
 
@@ -64,9 +65,7 @@ export default function ForgotPasswordPage() {
         </div>
         <div>
           <label className="label">New password</label>
-          <input
-            type="password"
-            className="input-field"
+          <PasswordInput
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="Min. 6 characters"
@@ -77,9 +76,7 @@ export default function ForgotPasswordPage() {
         </div>
         <div>
           <label className="label">Confirm password</label>
-          <input
-            type="password"
-            className="input-field"
+          <PasswordInput
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Repeat new password"

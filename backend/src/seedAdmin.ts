@@ -10,8 +10,8 @@ dotenv.config({ path: join(__dirname, '../../.env') });
 dotenv.config({ path: join(__dirname, '../../../.env') });
 
 async function seedAdmin() {
-  const email = process.env.ADMIN_EMAIL || 'admin@iris-artframe.com';
-  const password = process.env.ADMIN_PASSWORD || 'admin123456';
+  const email = process.env.ADMIN_EMAIL || 'admin@iris-artframe.vercel.app';
+  const password = process.env.ADMIN_PASSWORD || 'Admin@Iris2026';
   const name = process.env.ADMIN_NAME || 'Admin';
 
   const existing = await db.execute({
@@ -19,17 +19,18 @@ async function seedAdmin() {
     args: [email.toLowerCase()],
   });
 
+  const passwordHash = await bcrypt.hash(password, 12);
+
   if (existing.rows.length > 0) {
     await db.execute({
-      sql: "UPDATE users SET role = 'admin' WHERE email = ?",
-      args: [email.toLowerCase()],
+      sql: "UPDATE users SET role = 'admin', password_hash = ?, name = ? WHERE email = ?",
+      args: [passwordHash, name, email.toLowerCase()],
     });
-    console.log(`Admin role ensured for existing user: ${email}`);
+    console.log(`Admin user updated: ${email}`);
     return;
   }
 
   const id = uuidv4();
-  const passwordHash = await bcrypt.hash(password, 12);
 
   await db.execute({
     sql: `INSERT INTO users (id, email, password_hash, name, role) VALUES (?, ?, ?, ?, 'admin')`,

@@ -234,7 +234,7 @@ cp backend/.env.example backend/.env
 | `PUBLIC_BASE_URL` | Base URL for public image links (must match API URL) | `http://localhost:3001` |
 | `CORS_ORIGIN` | Allowed frontend origin(s), comma-separated | `http://localhost:5173` |
 | `MAX_UPLOAD_SIZE_MB` | Max image upload size | `10` |
-| `ADMIN_EMAIL` | Admin account email (used by seed script) | `admin@iris-artframe.com` |
+| `ADMIN_EMAIL` | Admin account email (used by seed script) | `admin@iris-artframe.vercel.app` |
 | `ADMIN_PASSWORD` | Admin account password | `Admin@Iris2026` |
 | `ADMIN_NAME` | Admin display name | `Admin` |
 
@@ -284,8 +284,8 @@ After `npm run seed:admin`:
 
 | Field | Value |
 |-------|-------|
-| Email | Value of `ADMIN_EMAIL` in `.env` (default: `admin@iris-artframe.com`) |
-| Password | Value of `ADMIN_PASSWORD` in `.env` |
+| Email | Value of `ADMIN_EMAIL` in `.env` (default: `admin@iris-artframe.vercel.app`) |
+| Password | Value of `ADMIN_PASSWORD` in `.env` (default: `Admin@Iris2026`) |
 
 The seed script is idempotent — re-running it updates the admin password if the email already exists.
 

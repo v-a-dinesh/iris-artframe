@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "iris-artframe-api-v1",
     "name": "Iris Art Frame API",
-    "description": "Complete API collection for Iris Art Frame.\n\n## Import\n1. Postman → Import → select this file\n2. Set `baseUrl` if not using localhost (default: http://localhost:3001)\n3. Run **Auth → Admin Login** first (saves `adminToken`)\n4. Run **Admin → Provision Device** (saves `deviceApiKey`, `deviceUuid`, `deviceId` — save API key from response!)\n5. Run **Auth → User Register** or **User Login** (saves `userToken`)\n6. Run **Devices → Register Device to User** linking the provisioned frame\n7. For image upload, pick a local JPG/PNG in the **Upload Image** request\n\n## Default test credentials\n- Admin: admin@iris-artframe.com / Admin@Iris2026\n- Sample MAC: B8:27:EB:AA:BB:FF → device ID IRIS-B827EBAABBFF\n\n## Auth headers\n- User/Admin routes: `Authorization: Bearer {{userToken}}` or `{{adminToken}}`\n- Device poll routes: `x-api-key: {{deviceApiKey}}`",
+    "description": "Complete API collection for Iris Art Frame.\n\n## Import\n1. Postman → Import → select this file\n2. Set `baseUrl` if not using localhost (default: http://localhost:3001)\n3. Run **Auth → Admin Login** first (saves `adminToken`)\n4. Run **Admin → Provision Device** (saves `deviceApiKey`, `deviceUuid`, `deviceId` — save API key from response!)\n5. Run **Auth → User Register** or **User Login** (saves `userToken`)\n6. Run **Devices → Register Device to User** linking the provisioned frame\n7. For image upload, pick a local JPG/PNG in the **Upload Image** request\n\n## Default test credentials\n- Admin: admin@iris-artframe.vercel.app / Admin@Iris2026\n- Sample MAC: B8:27:EB:AA:BB:FF → device ID IRIS-B827EBAABBFF\n\n## Auth headers\n- User/Admin routes: `Authorization: Bearer {{userToken}}` or `{{adminToken}}`\n- Device poll routes: `x-api-key: {{deviceApiKey}}`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -15,7 +15,7 @@
     { "key": "imageUuid", "value": "" },
     { "key": "imagePublicId", "value": "" },
     { "key": "jobId", "value": "" },
-    { "key": "adminEmail", "value": "admin@iris-artframe.com" },
+    { "key": "adminEmail", "value": "admin@iris-artframe.vercel.app" },
     { "key": "adminPassword", "value": "Admin@Iris2026" },
     { "key": "userEmail", "value": "test.user@iris-artframe.com" },
     { "key": "userPassword", "value": "TestUser@2026" },

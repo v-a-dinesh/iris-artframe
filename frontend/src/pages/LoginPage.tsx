@@ -1,58 +1,44 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AuthLayout, { AuthLink } from '../components/AuthLayout';
 import PasswordInput from '../components/ui/PasswordInput';
 import { useAuth } from '../context/AuthContext';
-import { getSavedLoginEmail, saveLoginEmail, useAutofillSync } from '../hooks/useAutofillSync';
-import { redirectAfterLogin, tryStoreLoginCredential } from '../utils/saveLoginCredential';
 import axios from 'axios';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState(getSavedLoginEmail);
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
-  useAutofillSync([
-    { id: 'login-email', setValue: setEmail },
-    { id: 'login-password', setValue: setPassword },
-  ]);
+  // Remove legacy app-side email cache — Chrome manages saved logins.
+  useEffect(() => {
+    localStorage.removeItem('iris-login-email');
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const trimmedEmail = email.trim();
-    const loginPassword = password;
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem('username') as HTMLInputElement).value.trim();
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
     try {
-      await login(trimmedEmail, loginPassword);
-      saveLoginEmail(trimmedEmail);
-
-      // Explicit save prompt (required for React SPAs — client-side navigate alone won't trigger Chrome).
-      await tryStoreLoginCredential(trimmedEmail, loginPassword);
-
-      // Full page load so Chrome's built-in password manager also recognizes success.
-      redirectAfterLogin('/dashboard');
-      return;
+      await login(email, password);
+      navigate('/dashboard');
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Login failed';
       setError(message || 'Login failed');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <AuthLayout title="Welcome back" subtitle="Sign in to your Iris Art Frame account">
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5"
-        autoComplete="on"
-        method="post"
-        action="/login"
-        name="login"
-      >
+      <form onSubmit={handleSubmit} className="space-y-5" autoComplete="on">
         {error && <div className="alert-error">{error}</div>}
         <div>
           <label className="label" htmlFor="login-email">
@@ -64,8 +50,6 @@ export default function LoginPage() {
             type="text"
             inputMode="email"
             className="input-field"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
             autoComplete="username"
@@ -84,8 +68,6 @@ export default function LoginPage() {
           <PasswordInput
             id="login-password"
             name="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
             autoComplete="current-password"

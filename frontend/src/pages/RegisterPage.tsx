@@ -1,9 +1,8 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AuthLayout, { AuthLink } from '../components/AuthLayout';
 import PasswordInput from '../components/ui/PasswordInput';
 import { useAuth } from '../context/AuthContext';
-import { saveLoginEmail } from '../hooks/useAutofillSync';
-import { redirectAfterLogin, tryStoreLoginCredential } from '../utils/saveLoginCredential';
 import axios from 'axios';
 import type { RegisterForm } from '../types';
 
@@ -12,6 +11,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,14 +22,11 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(form);
-      const email = form.email.trim();
-      saveLoginEmail(email);
-      await tryStoreLoginCredential(email, form.password);
-      redirectAfterLogin('/dashboard');
-      return;
+      navigate('/dashboard');
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Registration failed';
       setError(message || 'Registration failed');
+    } finally {
       setLoading(false);
     }
   };

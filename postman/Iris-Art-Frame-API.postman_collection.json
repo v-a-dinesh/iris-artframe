@@ -593,16 +593,16 @@
       "name": "Device Hardware (Pi / Frame)",
       "item": [
         {
-          "name": "Update Dynamic IP",
+          "name": "Report Device Status",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mac\": \"{{deviceMac}}\",\n  \"dynamic_ip\": \"{{dynamicIp}}\"\n}"
+              "raw": "{\n  \"device_id\": \"{{deviceId}}\",\n  \"name\": \"Bedroom Frame\",\n  \"dynamic_ip\": \"{{dynamicIp}}\",\n  \"wifiname\": \"HomeWiFi\",\n  \"status\": \"active\"\n}"
             },
             "url": "{{baseUrl}}/api/device/dynamic-ip",
-            "description": "Hardware reports dynamic IP on boot or when LAN IP changes. No auth required — device is identified by MAC address. Also marks device as online (updates last_seen_at)."
+            "description": "Hardware reports device details on boot. No auth. Requires valid device_id (MAC). Updates name, dynamic_ip, wifiname, status."
           },
           "response": [],
           "event": [
@@ -612,11 +612,8 @@
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
                   "const json = pm.response.json();",
-                  "pm.test('Dynamic IP updated', () => {",
-                  "    pm.expect(json.status).to.eql('success');",
-                  "    pm.expect(json.dynamic_ip).to.eql(pm.collectionVariables.get('dynamicIp'));",
-                  "});",
-                  "if (json.device_id) pm.collectionVariables.set('deviceId', json.device_id);"
+                  "pm.test('Device updated', () => pm.expect(json.status).to.eql('success'));",
+                  "if (json.device?.device_id) pm.collectionVariables.set('deviceId', json.device.device_id);"
                 ],
                 "type": "text/javascript"
               }
@@ -840,13 +837,13 @@
           ]
         },
         {
-          "name": "8. Update Dynamic IP (Hardware)",
+          "name": "8. Report Device Status (Hardware)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mac\": \"{{deviceMac}}\",\n  \"dynamic_ip\": \"{{dynamicIp}}\"\n}"
+              "raw": "{\n  \"device_id\": \"{{deviceId}}\",\n  \"dynamic_ip\": \"{{dynamicIp}}\",\n  \"wifiname\": \"HomeWiFi\",\n  \"status\": \"active\"\n}"
             },
             "url": "{{baseUrl}}/api/device/dynamic-ip"
           },
@@ -856,7 +853,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Dynamic IP updated', () => pm.response.to.have.status(200));"
+                  "pm.test('Device updated', () => pm.response.to.have.status(200));"
                 ],
                 "type": "text/javascript"
               }

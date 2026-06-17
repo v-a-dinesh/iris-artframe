@@ -20,6 +20,7 @@ export interface DeviceRecord {
   static_ip?: string | null;
   dynamic_ip?: string | null;
   dynamic_ip_updated_at?: string | null;
+  wifi_name?: string | null;
   registered_at?: string;
   created_at?: string;
   owner_count?: number;

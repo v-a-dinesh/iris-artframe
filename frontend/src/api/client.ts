@@ -1,5 +1,5 @@
 import axios, { type AxiosProgressEvent } from 'axios';
-import type { RegisterForm, Device, Image, ProvisionResult, User } from '../types';
+import type { RegisterForm, Device, Image, ProvisionResult, User, DeviceUpdatePayload } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 export const PUBLIC_BASE = API_BASE.replace(/\/api$/, '');
@@ -47,7 +47,7 @@ export const devicesApi = {
   list: () => api.get<{ status: string; devices: Device[] }>('/devices'),
   register: (data: { device_id: string; name?: string }) =>
     api.post<{ status: string; device: Device }>('/devices/register', data),
-  update: (id: string, data: { name?: string; ip_address?: string; dynamic_ip?: string }) =>
+  update: (id: string, data: DeviceUpdatePayload) =>
     api.patch<{ status: string; device: Device }>(`/devices/${id}`, data),
   remove: (id: string) => api.delete(`/devices/${id}`),
   display: (id: string, imageId: string) =>
@@ -79,6 +79,6 @@ export const adminApi = {
     api.get<{ status: string; device: Device; qr_payload: string; qr_data_url: string }>(
       `/admin/devices/${id}/qr`
     ),
-  updateDevice: (id: string, data: { name?: string; static_ip?: string; dynamic_ip?: string }) =>
+  updateDevice: (id: string, data: DeviceUpdatePayload) =>
     api.patch<{ status: string; device: Device }>(`/admin/devices/${id}`, data),
 };

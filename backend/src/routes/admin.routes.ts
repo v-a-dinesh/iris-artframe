@@ -7,6 +7,14 @@ import { paramId } from '../utils/params.js';
 
 const router = Router();
 
+const adminDevicePatchSchema = z.object({
+  name: z.string().optional(),
+  static_ip: z.string().ip().optional().nullable(),
+  dynamic_ip: z.string().ip().optional().nullable(),
+  wifi_name: z.string().optional().nullable(),
+  status: z.enum(['active', 'inactive']).optional(),
+});
+
 router.use(authMiddleware, adminMiddleware);
 
 router.get('/devices', async (_req: Request, res: Response, next: NextFunction) => {
@@ -58,17 +66,14 @@ router.get('/devices/:id/qr', async (req: Request, res: Response, next: NextFunc
 
 router.patch('/devices/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const schema = z.object({
-      name: z.string().optional(),
-      static_ip: z.string().ip().optional().nullable(),
-      dynamic_ip: z.string().ip().optional().nullable(),
-    });
-    const data = schema.parse(req.body);
+    const data = adminDevicePatchSchema.parse(req.body);
     const deviceUuid = await resolveDeviceUuid(paramId(req));
     const device = await adminUpdateDevice(deviceUuid, {
       name: data.name,
       static_ip: data.static_ip ?? undefined,
       dynamic_ip: data.dynamic_ip ?? undefined,
+      wifi_name: data.wifi_name ?? undefined,
+      status: data.status,
     });
     res.json({ status: 'success', device });
   } catch (err) {

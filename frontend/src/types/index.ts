@@ -18,11 +18,21 @@ export interface Device {
   mac?: string | null;
   dynamic_ip?: string | null;
   dynamic_ip_updated_at?: string | null;
+  wifi_name?: string | null;
   registered_at?: string;
   owner_count?: number;
   created_at?: string;
   last_seen_at?: string | null;
 }
+
+export type DeviceUpdatePayload = {
+  name?: string;
+  ip_address?: string;
+  static_ip?: string | null;
+  dynamic_ip?: string | null;
+  wifi_name?: string | null;
+  status?: 'active' | 'inactive';
+};
 
 export interface Image {
   id: string;

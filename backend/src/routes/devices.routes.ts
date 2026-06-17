@@ -50,33 +50,43 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
   }
 });
 
+const devicePatchSchema = z.object({
+  name: z.string().optional(),
+  ip_address: z.string().optional(),
+  dynamic_ip: z.string().ip().optional().nullable(),
+  wifi_name: z.string().optional().nullable(),
+  status: z.enum(['active', 'inactive']).optional(),
+});
+
+const adminDevicePatchSchema = devicePatchSchema.extend({
+  static_ip: z.string().ip().optional().nullable(),
+});
+
 router.patch('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const deviceUuid = await resolveDeviceUuid(paramId(req));
 
     if (req.user!.role === 'admin') {
-      const schema = z.object({
-        name: z.string().optional(),
-        static_ip: z.string().ip().optional().nullable(),
-        dynamic_ip: z.string().ip().optional().nullable(),
-      });
-      const data = schema.parse(req.body);
+      const data = adminDevicePatchSchema.parse(req.body);
       const device = await adminUpdateDevice(deviceUuid, {
         name: data.name,
         static_ip: data.static_ip ?? undefined,
         dynamic_ip: data.dynamic_ip ?? undefined,
+        wifi_name: data.wifi_name ?? undefined,
+        status: data.status,
       });
       res.json({ status: 'success', device });
       return;
     }
 
-    const schema = z.object({
-      name: z.string().optional(),
-      ip_address: z.string().optional(),
-      dynamic_ip: z.string().ip().optional(),
+    const data = devicePatchSchema.parse(req.body);
+    const device = await updateDevice(req.user!.id, deviceUuid, {
+      name: data.name,
+      ip_address: data.ip_address,
+      dynamic_ip: data.dynamic_ip ?? undefined,
+      wifi_name: data.wifi_name ?? undefined,
+      status: data.status,
     });
-    const data = schema.parse(req.body);
-    const device = await updateDevice(req.user!.id, deviceUuid, data);
     res.json({ status: 'success', device });
   } catch (err) {
     if (err instanceof z.ZodError) {

@@ -10,7 +10,7 @@ dotenv.config({ path: join(__dirname, '../../../.env') });
 
 import { macToDeviceId, parseQrPayload, isValidMac, normalizeDeviceId } from '../utils/deviceId.js';
 import { registerUser, loginUser } from '../services/auth.service.js';
-import { provisionDevice, registerDeviceForUser, updateDeviceDynamicIp, updateDeviceDynamicIpByMac } from '../services/device.service.js';
+import { provisionDevice, registerDeviceForUser, updateDevice, hardwareUpdateDevice } from '../services/device.service.js';
 import { uploadImage, getImageByPublicId } from '../services/image.service.js';
 import { queueDisplayJob } from '../services/display.service.js';
 
@@ -116,15 +116,27 @@ describe('Iris Art Frame API Integration', () => {
     jobId = result.job_id;
   });
 
-  it('updates device dynamic IP', async () => {
-    const device = await updateDeviceDynamicIp(deviceUuid, '192.168.1.105');
+  it('updates device via user patch', async () => {
+    const device = await updateDevice(userId, deviceUuid, {
+      dynamic_ip: '192.168.1.105',
+      wifi_name: 'TestWiFi',
+      status: 'active',
+    });
     assert.ok(device);
     assert.equal(device?.dynamic_ip, '192.168.1.105');
+    assert.equal(device?.wifi_name, 'TestWiFi');
+    assert.equal(device?.status, 'active');
   });
 
-  it('updates device dynamic IP by MAC', async () => {
-    const device = await updateDeviceDynamicIpByMac(TEST_MAC, '192.168.1.50');
+  it('updates device from hardware API by device_id', async () => {
+    const device = await hardwareUpdateDevice(TEST_MAC, {
+      dynamic_ip: '192.168.1.50',
+      wifi_name: 'HomeNetwork',
+      status: 'active',
+    });
     assert.ok(device);
     assert.equal(device?.dynamic_ip, '192.168.1.50');
+    assert.equal(device?.wifi_name, 'HomeNetwork');
+    assert.equal(device?.status, 'active');
   });
 });

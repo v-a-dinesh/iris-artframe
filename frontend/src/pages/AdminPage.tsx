@@ -5,6 +5,7 @@ import PageHeader from '../components/ui/PageHeader';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import StatusBadge from '../components/ui/StatusBadge';
 import PrintLabel from '../components/PrintLabel';
+import DeviceEditForm, { deviceToEditValues, type DeviceEditValues } from '../components/DeviceEditForm';
 import { IconAdmin, IconQr } from '../components/icons';
 import { adminApi } from '../api/client';
 import type { Device, ProvisionResult } from '../types';
@@ -20,7 +21,12 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [listLoading, setListLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [dynamicIpInput, setDynamicIpInput] = useState('');
+  const [editValues, setEditValues] = useState<DeviceEditValues>({
+    name: '',
+    dynamic_ip: '',
+    wifi_name: '',
+    status: 'inactive',
+  });
   const [adminSaveError, setAdminSaveError] = useState('');
   const [adminSaving, setAdminSaving] = useState(false);
 
@@ -71,23 +77,27 @@ export default function AdminPage() {
     }
   };
 
-  const startAdminEditDynamicIp = (device: Device) => {
+  const startAdminEdit = (device: Device) => {
     setEditingId(device.id);
-    setDynamicIpInput(device.dynamic_ip || '');
+    setEditValues(deviceToEditValues(device));
     setAdminSaveError('');
   };
 
-  const handleAdminSaveDynamicIp = async (deviceId: string) => {
+  const handleAdminSave = async (deviceId: string) => {
     setAdminSaveError('');
     setAdminSaving(true);
     try {
-      await adminApi.updateDevice(deviceId, { dynamic_ip: dynamicIpInput.trim() });
+      await adminApi.updateDevice(deviceId, {
+        name: editValues.name.trim() || undefined,
+        dynamic_ip: editValues.dynamic_ip.trim() || null,
+        wifi_name: editValues.wifi_name.trim() || null,
+        status: editValues.status as 'active' | 'inactive',
+      });
       setEditingId(null);
-      setDynamicIpInput('');
       loadDevices();
     } catch (err) {
-      const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Failed to update IP';
-      setAdminSaveError(message || 'Failed to update IP');
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Failed to update device';
+      setAdminSaveError(message || 'Failed to update device');
     } finally {
       setAdminSaving(false);
     }
@@ -212,7 +222,8 @@ export default function AdminPage() {
                   <tr className="border-b border-ink-200 bg-ink-100/80 text-left text-xs uppercase tracking-wider text-muted dark:border-ink-700/50 dark:bg-ink-800/40">
                     <th className="px-4 py-4 font-semibold sm:px-6">MAC address</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Name</th>
-                    <th className="px-4 py-4 font-semibold sm:px-6">IP Addresses</th>
+                    <th className="px-4 py-4 font-semibold sm:px-6">Network</th>
+                    <th className="px-4 py-4 font-semibold sm:px-6">WiFi</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Status</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Owners</th>
                     <th className="px-4 py-4 font-semibold sm:px-6">Actions</th>
@@ -224,63 +235,32 @@ export default function AdminPage() {
                       <td className="px-4 py-4 font-mono text-iris-600 dark:text-iris-300 sm:px-6">{d.device_id}</td>
                       <td className="px-4 py-4 text-body sm:px-6">{d.name || '—'}</td>
                       <td className="px-4 py-4 sm:px-6">
-                        {editingId === d.id ? (
-                          <div className="space-y-2">
-                            <input
-                              className="input-field font-mono text-xs"
-                              value={dynamicIpInput}
-                              onChange={(e) => setDynamicIpInput(e.target.value)}
-                              placeholder="192.168.1.105"
-                            />
-                            {adminSaveError && <p className="text-xs text-red-400">{adminSaveError}</p>}
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                className="text-xs font-medium text-iris-600"
-                                disabled={adminSaving || !dynamicIpInput.trim()}
-                                onClick={() => handleAdminSaveDynamicIp(d.id)}
-                              >
-                                Save
-                              </button>
-                              <button
-                                type="button"
-                                className="text-xs text-muted"
-                                onClick={() => setEditingId(null)}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <div className="text-xs text-muted">Static: {d.static_ip || '—'}</div>
-                            <div className="text-xs text-muted">Dynamic: {d.dynamic_ip || '—'}</div>
-                            {d.dynamic_ip_updated_at && (
-                              <div className="text-xs text-subtle">
-                                Updated {new Date(d.dynamic_ip_updated_at).toLocaleString()}
-                              </div>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => startAdminEditDynamicIp(d)}
-                              className="text-xs font-medium text-iris-600 hover:text-iris-500"
-                            >
-                              Edit dynamic IP
-                            </button>
-                          </div>
-                        )}
+                        <div className="space-y-1 text-xs text-muted">
+                          <div>Static: {d.static_ip || '—'}</div>
+                          <div>Dynamic: {d.dynamic_ip || '—'}</div>
+                        </div>
                       </td>
+                      <td className="px-4 py-4 text-body sm:px-6">{d.wifi_name || '—'}</td>
                       <td className="px-4 py-4 sm:px-6">
                         <StatusBadge status={d.status} />
                       </td>
                       <td className="px-4 py-4 text-muted sm:px-6">{d.owner_count ?? 0}</td>
                       <td className="px-4 py-4 sm:px-6">
-                        <button
-                          onClick={() => handleReprintQr(d.id)}
-                          className="font-medium text-iris-600 transition-colors hover:text-iris-500 dark:text-iris-400 dark:hover:text-iris-300"
-                        >
-                          Reprint QR
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startAdminEdit(d)}
+                            className="text-left font-medium text-iris-600 transition-colors hover:text-iris-500 dark:text-iris-400 dark:hover:text-iris-300"
+                          >
+                            Edit device
+                          </button>
+                          <button
+                            onClick={() => handleReprintQr(d.id)}
+                            className="text-left font-medium text-iris-600 transition-colors hover:text-iris-500 dark:text-iris-400 dark:hover:text-iris-300"
+                          >
+                            Reprint QR
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -290,6 +270,25 @@ export default function AdminPage() {
           </div>
         )}
       </section>
+
+      {editingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="card max-h-[90vh] w-full max-w-md overflow-y-auto">
+            <h3 className="font-display text-lg font-semibold text-heading">Edit device</h3>
+            <p className="mt-1 text-sm text-muted">Update name, network details, and status</p>
+            <div className="mt-5">
+              <DeviceEditForm
+                values={editValues}
+                onChange={setEditValues}
+                onSave={() => handleAdminSave(editingId)}
+                onCancel={() => setEditingId(null)}
+                saving={adminSaving}
+                error={adminSaveError}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

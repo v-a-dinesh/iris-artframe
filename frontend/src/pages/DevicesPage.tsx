@@ -5,6 +5,7 @@ import PageHeader from '../components/ui/PageHeader';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import EmptyState from '../components/ui/EmptyState';
 import StatusBadge from '../components/ui/StatusBadge';
+import DeviceEditForm, { deviceToEditValues, type DeviceEditValues } from '../components/DeviceEditForm';
 import { IconDevices, IconPlus, IconQr } from '../components/icons';
 import { devicesApi } from '../api/client';
 import type { Device } from '../types';
@@ -14,7 +15,12 @@ export default function DevicesPage() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [dynamicIpInput, setDynamicIpInput] = useState('');
+  const [editValues, setEditValues] = useState<DeviceEditValues>({
+    name: '',
+    dynamic_ip: '',
+    wifi_name: '',
+    status: 'inactive',
+  });
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -36,23 +42,27 @@ export default function DevicesPage() {
     setDevices((prev) => prev.filter((d) => d.id !== id));
   };
 
-  const startEditDynamicIp = (device: Device) => {
+  const startEdit = (device: Device) => {
     setEditingId(device.id);
-    setDynamicIpInput(device.dynamic_ip || '');
+    setEditValues(deviceToEditValues(device));
     setSaveError('');
   };
 
-  const handleSaveDynamicIp = async (deviceId: string) => {
+  const handleSave = async (deviceId: string) => {
     setSaveError('');
     setSaving(true);
     try {
-      const res = await devicesApi.update(deviceId, { dynamic_ip: dynamicIpInput.trim() });
+      const res = await devicesApi.update(deviceId, {
+        name: editValues.name.trim() || undefined,
+        dynamic_ip: editValues.dynamic_ip.trim() || null,
+        wifi_name: editValues.wifi_name.trim() || null,
+        status: editValues.status as 'active' | 'inactive',
+      });
       setDevices((prev) => prev.map((d) => (d.id === deviceId ? res.data.device : d)));
       setEditingId(null);
-      setDynamicIpInput('');
     } catch (err) {
-      const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Failed to update IP';
-      setSaveError(message || 'Failed to update IP');
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : 'Failed to update device';
+      setSaveError(message || 'Failed to update device');
     } finally {
       setSaving(false);
     }
@@ -113,6 +123,10 @@ export default function DevicesPage() {
                   <span className="text-muted">Dynamic IP</span>
                   <span className="font-mono text-body">{device.dynamic_ip || '—'}</span>
                 </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted">WiFi name</span>
+                  <span className="text-body">{device.wifi_name || '—'}</span>
+                </div>
                 {device.dynamic_ip_updated_at && (
                   <p className="text-xs text-subtle">
                     Dynamic IP updated {new Date(device.dynamic_ip_updated_at).toLocaleString()}
@@ -121,50 +135,27 @@ export default function DevicesPage() {
               </div>
 
               {editingId === device.id ? (
-                <div className="mt-4 space-y-2">
-                  <label className="label">Update dynamic IP manually</label>
-                  <input
-                    className="input-field font-mono text-sm"
-                    value={dynamicIpInput}
-                    onChange={(e) => setDynamicIpInput(e.target.value)}
-                    placeholder="192.168.1.105"
+                <div className="mt-4">
+                  <DeviceEditForm
+                    values={editValues}
+                    onChange={setEditValues}
+                    onSave={() => handleSave(device.id)}
+                    onCancel={() => {
+                      setEditingId(null);
+                      setSaveError('');
+                    }}
+                    saving={saving}
+                    error={saveError}
                   />
-                  {saveError && <p className="text-xs text-red-400">{saveError}</p>}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className="btn-primary flex-1 text-sm"
-                      disabled={saving || !dynamicIpInput.trim()}
-                      onClick={() => handleSaveDynamicIp(device.id)}
-                    >
-                      {saving ? 'Saving...' : 'Save dynamic IP'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-secondary text-sm"
-                      onClick={() => {
-                        setEditingId(null);
-                        setSaveError('');
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
                 </div>
               ) : (
                 <button
                   type="button"
-                  onClick={() => startEditDynamicIp(device)}
+                  onClick={() => startEdit(device)}
                   className="mt-4 text-xs font-medium text-iris-600 hover:text-iris-500 dark:text-iris-400"
                 >
-                  Update dynamic IP manually
+                  Edit device
                 </button>
-              )}
-
-              {device.status !== 'active' && (
-                <p className="mt-3 text-xs leading-relaxed text-muted">
-                  Frame shows Online after the hardware reports its dynamic IP via the device API.
-                </p>
               )}
 
               <div className="mt-6 flex items-center justify-between border-t border-ink-700/50 pt-4">

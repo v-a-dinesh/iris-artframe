@@ -8,17 +8,30 @@ import { asString, asNumber, createError } from '../types/index.js';
 
 const ONLINE_THRESHOLD_MS = 5 * 60 * 1000;
 
+const DEVICE_COLUMNS = `id, device_id, name, status, ip_address, static_ip, dynamic_ip, dynamic_ip_updated_at, wifi_name, last_seen_at, created_at`;
+
+export interface DevicePatchFields {
+  name?: string;
+  ip_address?: string;
+  static_ip?: string | null;
+  dynamic_ip?: string | null;
+  wifi_name?: string | null;
+  status?: string;
+  touchPresence?: boolean;
+}
+
 function mapDeviceRow(row: Record<string, unknown>, extras?: Partial<DeviceRecord>): DeviceRecord {
   const lastSeenAt = row.last_seen_at ? asString(row.last_seen_at) : null;
   return {
     id: asString(row.id),
     device_id: asString(row.device_id),
     name: row.name ? asString(row.name) : null,
-    status: getEffectiveDeviceStatus(lastSeenAt),
+    status: row.status ? asString(row.status) : 'inactive',
     ip_address: row.ip_address ? asString(row.ip_address) : null,
     static_ip: row.static_ip ? asString(row.static_ip) : null,
     dynamic_ip: row.dynamic_ip ? asString(row.dynamic_ip) : null,
     dynamic_ip_updated_at: row.dynamic_ip_updated_at ? asString(row.dynamic_ip_updated_at) : null,
+    wifi_name: row.wifi_name ? asString(row.wifi_name) : null,
     created_at: row.created_at ? asString(row.created_at) : undefined,
     last_seen_at: lastSeenAt,
     ...extras,
@@ -108,7 +121,7 @@ export async function provisionDevice({
 export async function listAllDevices(): Promise<DeviceRecord[]> {
   const result = await db.execute({
     sql: `SELECT d.id, d.device_id, d.name, d.status, d.ip_address, d.static_ip, d.dynamic_ip,
-            d.dynamic_ip_updated_at, d.last_seen_at, d.created_at,
+            d.dynamic_ip_updated_at, d.wifi_name, d.last_seen_at, d.created_at,
             (SELECT COUNT(*) FROM user_devices ud WHERE ud.device_id = d.id) as owner_count
           FROM devices d ORDER BY d.created_at DESC`,
     args: [],
@@ -126,7 +139,7 @@ export async function registerDeviceForUser(
   const normalizedDeviceId = normalizeDeviceId(device_id);
 
   const deviceResult = await db.execute({
-    sql: `SELECT id, device_id, name, status, ip_address, static_ip, dynamic_ip, dynamic_ip_updated_at, last_seen_at
+    sql: `SELECT id, device_id, name, status, ip_address, static_ip, dynamic_ip, dynamic_ip_updated_at, wifi_name, last_seen_at
           FROM devices WHERE device_id = ?`,
     args: [normalizedDeviceId],
   });
@@ -171,7 +184,7 @@ export async function registerDeviceForUser(
 export async function listUserDevices(userId: string): Promise<DeviceRecord[]> {
   const result = await db.execute({
     sql: `SELECT d.id, d.device_id, d.name, d.status, d.ip_address, d.static_ip, d.dynamic_ip,
-            d.dynamic_ip_updated_at, d.last_seen_at, ud.registered_at
+            d.dynamic_ip_updated_at, d.wifi_name, d.last_seen_at, ud.registered_at
           FROM user_devices ud
           JOIN devices d ON d.id = ud.device_id
           WHERE ud.user_id = ?
@@ -187,70 +200,68 @@ export async function listUserDevices(userId: string): Promise<DeviceRecord[]> {
 export async function updateDevice(
   userId: string,
   deviceUuid: string,
-  { name, ip_address, dynamic_ip }: { name?: string; ip_address?: string; dynamic_ip?: string }
+  fields: Omit<DevicePatchFields, 'static_ip' | 'touchPresence'>
 ) {
   await assertUserOwnsDevice(userId, deviceUuid);
-
-  const updates: string[] = [];
-  const args: (string | null)[] = [];
-
-  if (name !== undefined) {
-    updates.push('name = ?');
-    args.push(name);
-  }
-  if (ip_address !== undefined) {
-    updates.push('ip_address = ?');
-    args.push(ip_address);
-  }
-  if (dynamic_ip !== undefined) {
-    updates.push('dynamic_ip = ?');
-    updates.push("dynamic_ip_updated_at = datetime('now')");
-    args.push(dynamic_ip.trim());
-  }
-
-  if (updates.length === 0) {
-    throw createError('No fields to update', 400);
-  }
-
-  updates.push("updated_at = datetime('now')");
-  args.push(deviceUuid);
-
-  await db.execute({
-    sql: `UPDATE devices SET ${updates.join(', ')} WHERE id = ?`,
-    args,
-  });
-
+  await patchDeviceFields(deviceUuid, fields);
   return getDeviceByUuid(deviceUuid);
 }
 
 export async function adminUpdateDevice(
   deviceUuid: string,
-  { name, static_ip, dynamic_ip }: { name?: string; static_ip?: string; dynamic_ip?: string }
+  fields: Omit<DevicePatchFields, 'ip_address' | 'touchPresence'>
+) {
+  await patchDeviceFields(deviceUuid, fields, { checkStaticIpUnique: true });
+  return getDeviceByUuid(deviceUuid);
+}
+
+async function patchDeviceFields(
+  deviceUuid: string,
+  fields: DevicePatchFields,
+  options?: { checkStaticIpUnique?: boolean }
 ) {
   const updates: string[] = [];
   const args: (string | null)[] = [];
 
-  if (name !== undefined) {
+  if (fields.name !== undefined) {
     updates.push('name = ?');
-    args.push(name);
+    args.push(fields.name);
   }
-  if (static_ip !== undefined) {
-    if (static_ip) {
+  if (fields.ip_address !== undefined) {
+    updates.push('ip_address = ?');
+    args.push(fields.ip_address);
+  }
+  if (fields.static_ip !== undefined) {
+    if (fields.static_ip && options?.checkStaticIpUnique) {
       const ipExists = await db.execute({
         sql: 'SELECT id FROM devices WHERE static_ip = ? AND id != ?',
-        args: [static_ip, deviceUuid],
+        args: [fields.static_ip, deviceUuid],
       });
       if (ipExists.rows.length > 0) {
         throw createError('Static IP already assigned to another device', 409, 'STATIC_IP_EXISTS');
       }
     }
     updates.push('static_ip = ?');
-    args.push(static_ip || null);
+    args.push(fields.static_ip || null);
   }
-  if (dynamic_ip !== undefined) {
+  if (fields.dynamic_ip !== undefined) {
     updates.push('dynamic_ip = ?');
     updates.push("dynamic_ip_updated_at = datetime('now')");
-    args.push(dynamic_ip.trim() || null);
+    args.push(fields.dynamic_ip?.trim() || null);
+  }
+  if (fields.wifi_name !== undefined) {
+    updates.push('wifi_name = ?');
+    args.push(fields.wifi_name?.trim() || null);
+  }
+  if (fields.status !== undefined) {
+    updates.push('status = ?');
+    args.push(fields.status);
+  }
+  if (fields.touchPresence) {
+    updates.push("last_seen_at = datetime('now')");
+    if (fields.status === undefined) {
+      updates.push("status = 'active'");
+    }
   }
 
   if (updates.length === 0) {
@@ -264,8 +275,26 @@ export async function adminUpdateDevice(
     sql: `UPDATE devices SET ${updates.join(', ')} WHERE id = ?`,
     args,
   });
+}
 
-  return getDeviceByUuid(deviceUuid);
+export async function hardwareUpdateDevice(
+  deviceId: string,
+  fields: { name?: string; dynamic_ip?: string; wifi_name?: string; status?: string }
+) {
+  const device = await getDeviceByDeviceId(deviceId);
+  if (!device) {
+    throw createError('Device not found. Ask admin to provision this device first.', 404, 'DEVICE_NOT_FOUND');
+  }
+
+  await patchDeviceFields(device.id, {
+    name: fields.name,
+    dynamic_ip: fields.dynamic_ip,
+    wifi_name: fields.wifi_name,
+    status: fields.status,
+    touchPresence: true,
+  });
+
+  return getDeviceByUuid(device.id);
 }
 
 export async function unregisterDevice(userId: string, deviceUuid: string) {
@@ -279,8 +308,7 @@ export async function unregisterDevice(userId: string, deviceUuid: string) {
 
 export async function getDeviceByUuid(id: string): Promise<DeviceRecord | null> {
   const result = await db.execute({
-    sql: `SELECT id, device_id, name, status, ip_address, static_ip, dynamic_ip, dynamic_ip_updated_at,
-            last_seen_at, created_at FROM devices WHERE id = ?`,
+    sql: `SELECT ${DEVICE_COLUMNS} FROM devices WHERE id = ?`,
     args: [id],
   });
   if (result.rows.length === 0) return null;
@@ -368,43 +396,9 @@ export async function regenerateQr(deviceUuid: string) {
 export async function getDeviceByDeviceId(deviceId: string): Promise<DeviceRecord | null> {
   const normalizedDeviceId = normalizeDeviceId(deviceId);
   const result = await db.execute({
-    sql: `SELECT id, device_id, name, status, ip_address, static_ip, dynamic_ip, dynamic_ip_updated_at, last_seen_at, created_at
-          FROM devices WHERE device_id = ?`,
+    sql: `SELECT ${DEVICE_COLUMNS} FROM devices WHERE device_id = ?`,
     args: [normalizedDeviceId],
   });
   if (result.rows.length === 0) return null;
   return mapDeviceRow(result.rows[0] as Record<string, unknown>);
-}
-
-export async function updateDeviceDynamicIp(deviceUuid: string, dynamicIp: string) {
-  const trimmedIp = dynamicIp.trim();
-  if (!trimmedIp) {
-    throw createError('Dynamic IP cannot be empty', 400);
-  }
-
-  await db.execute({
-    sql: `UPDATE devices 
-          SET dynamic_ip = ?, dynamic_ip_updated_at = datetime('now'), updated_at = datetime('now')
-          WHERE id = ?`,
-    args: [trimmedIp, deviceUuid],
-  });
-
-  return getDeviceByUuid(deviceUuid);
-}
-
-export async function updateDeviceDynamicIpByMac(mac: string, dynamicIp: string) {
-  if (!isValidMac(mac)) {
-    throw createError('Invalid MAC address. Use format AA:BB:CC:DD:EE:FF or AABBCCDDEEFF', 400);
-  }
-
-  const deviceIdStr = macToDeviceId(mac);
-  const device = await getDeviceByDeviceId(deviceIdStr);
-  if (!device) {
-    throw createError('Device not found. Ask admin to provision this device first.', 404, 'DEVICE_NOT_FOUND');
-  }
-
-  await updateDeviceDynamicIp(device.id, dynamicIp);
-  await touchDevicePresence(device.id);
-
-  return getDeviceByUuid(device.id);
 }
